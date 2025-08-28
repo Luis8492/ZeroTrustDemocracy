@@ -31,16 +31,23 @@ def get_next_qa(data: EvaledRequest):
 
 @app.post("/api/qa/meta")
 def get_qa_meta(data: EvaledRequest):
+    if not data.evaled_ids:
+        return []
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     query = f"""
-        SELECT id, topic_intro, QA, questioner
+        SELECT id, questioner, topic_intro, QA
         FROM questions
         WHERE id IN ({','.join('?' for _ in data.evaled_ids)})
     """
     cur.execute(query, data.evaled_ids)
     metas = [
-        {"id": row[0], "topic_intro": json.loads(row[1]), "QA": json.loads(row[2]), "questioner": row[3]}
+        {
+            "id": row[0],
+            "questioner": row[1],
+            "topic_intro": json.loads(row[2]),
+            "QA": json.loads(row[3]),
+        }
         for row in cur.fetchall()
     ]
     conn.close()
