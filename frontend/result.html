@@ -32,11 +32,10 @@
         const ids = evaluations.map(e => e.QA_id);
         const metas = await fetchMetaData(ids);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
-
         const questionerStats = computeGroupedStats(
             metas,
             meta => evalMap.get(meta.id),
-            meta => meta.questioner
+            meta => meta.questioner_party
         );
         renderChart(questionerStats, 'questioner-chart', '議員別平均評価');
 
