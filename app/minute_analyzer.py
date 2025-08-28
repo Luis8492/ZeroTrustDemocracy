@@ -192,6 +192,9 @@ CREATE TABLE IF NOT EXISTS questions (
                     if speech["mark"]=="◆":
                         questioner = speech["name"]
                         break
+                if questioner == "":
+                    # Skip QA sequences with no question mark
+                    continue
                 QA_text = json.dumps(QA,indent=4,ensure_ascii=False)
                 cur.execute(
                     "INSERT OR IGNORE INTO questions (file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?)",
