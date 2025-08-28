@@ -27,3 +27,11 @@ export async function listEvaluatedIDs() {
   //return evaledIds;
   return evalDBContent.map(e => e.QA_id);
 }
+
+export async function listEvaluations() {
+  const db = await getDB();
+  const tx = db.transaction('evaluations','readonly');
+  const evalDB = tx.objectStore('evaluations');
+  const evalDBContent = await evalDB.getAll();
+  return evalDBContent;
+}

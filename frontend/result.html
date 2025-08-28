@@ -1,0 +1,38 @@
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="db.js" type="module"></script>
+    <script src="api.js" type="module"></script>
+    <title>Result</title>
+</head>
+<body>
+    <h1>評価結果</h1>
+    <div id="results"></div>
+
+    <script type="module">
+    import { fetchMetaData } from './api.js';
+    import { listEvaluations } from './db.js';
+
+    async function showResults() {
+        const evaluations = await listEvaluations();
+        if (evaluations.length === 0) {
+            document.getElementById('results').innerText = '評価がありません';
+            return;
+        }
+        const ids = evaluations.map(e => e.QA_id);
+        const metas = await fetchMetaData(ids);
+        const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
+        const container = document.getElementById('results');
+        metas.forEach(meta => {
+            const { id, questioner, topic_intro, QA } = meta;
+            const div = document.createElement('div');
+            div.textContent = `${id}: ${evalMap.get(id)}: ${questioner}`;
+            container.appendChild(div);
+        });
+    }
+
+    document.addEventListener('DOMContentLoaded', showResults);
+    </script>
+</body>
+</html>
