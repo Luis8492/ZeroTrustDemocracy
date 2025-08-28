@@ -40,6 +40,10 @@ function recordEval() {
   window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
+function scrollToTop() {
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
 
 document.addEventListener("DOMContentLoaded", fetchQuestion);
 
@@ -48,3 +52,4 @@ window.fetchQuestion = fetchQuestion;
 window.fetchNextQA = fetchNextQA;
 window.listEvaluatedIDs = listEvaluatedIDs;
 window.fetchMetaData = fetchMetaData;
+window.scrollToTop = scrollToTop;
