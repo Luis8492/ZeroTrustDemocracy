@@ -2,17 +2,22 @@
 <head>
     <meta charset="UTF-8">
     <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chartjs-chart-error-bars@4"></script>
     <script src="db.js" type="module"></script>
     <script src="api.js" type="module"></script>
+    <script src="stats.js" type="module"></script>
     <title>Result</title>
 </head>
 <body>
     <h1>評価結果</h1>
     <div id="results"></div>
+    <canvas id="questioner-chart" width="800" height="400"></canvas>
 
     <script type="module">
     import { fetchMetaData } from './api.js';
     import { listEvaluations } from './db.js';
+    import { computeGroupedStats } from './stats.js';
 
     async function showResults() {
         const evaluations = await listEvaluations();
@@ -23,12 +28,40 @@
         const ids = evaluations.map(e => e.QA_id);
         const metas = await fetchMetaData(ids);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
-        const container = document.getElementById('results');
-        metas.forEach(meta => {
-            const { id, questioner, topic_intro, QA } = meta;
-            const div = document.createElement('div');
-            div.textContent = `${id}: ${evalMap.get(id)}: ${questioner}`;
-            container.appendChild(div);
+
+        const stats = computeGroupedStats(
+            metas,
+            meta => evalMap.get(meta.id),
+            meta => meta.questioner
+        );
+        renderChart(stats);
+    }
+
+    function renderChart(stats) {
+        const labels = stats.map(s => s.key);
+        const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.std, yMax: s.mean + s.std }));
+        const ctx = document.getElementById('questioner-chart').getContext('2d');
+        new Chart(ctx, {
+            type: 'barWithErrorBars',
+            data: {
+                labels,
+                datasets: [{
+                    label: '平均評価',
+                    data,
+                    backgroundColor: 'rgba(75, 192, 192, 0.5)',
+                    borderColor: 'rgba(75, 192, 192, 1)',
+                    borderWidth: 1
+                }]
+            },
+            options: {
+                scales: {
+                    y: {
+                        beginAtZero: true,
+                        suggestedMin: -3,
+                        suggestedMax: 3
+                    }
+                }
+            }
         });
     }
 
