@@ -25,6 +25,7 @@ async function fetchQuestion(){
     document.querySelector("#question").innerText = "noNONO";
     // 他の要素（topic_introや名前など）も表示に追加可能
   }
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 function recordEval() {
