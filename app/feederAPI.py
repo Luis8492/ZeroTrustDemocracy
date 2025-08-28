@@ -1,7 +1,8 @@
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List, Dict, Any
-import sqlite3, random, json
+import sqlite3, random, json, csv
+from pathlib import Path
 from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
 
@@ -16,6 +17,8 @@ app.add_middleware(
 )
 
 DB_PATH = "db/minutes.db"
+with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
+    PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
 class EvaledRequest(BaseModel):
     evaled_ids: List[int] # POSTデータ受け用
@@ -41,15 +44,18 @@ def get_qa_meta(data: EvaledRequest):
         WHERE id IN ({','.join('?' for _ in data.evaled_ids)})
     """
     cur.execute(query, data.evaled_ids)
-    metas = [
-        {
-            "id": row[0],
-            "questioner": row[1],
-            "topic_intro": json.loads(row[2]),
-            "QA": json.loads(row[3]),
-        }
-        for row in cur.fetchall()
-    ]
+    metas = []
+    for row in cur.fetchall():
+        questioner = row[1]
+        metas.append(
+            {
+                "id": row[0],
+                "questioner": questioner,
+                "questioner_party": PARTY_TABLE.get(questioner, ""),
+                "topic_intro": json.loads(row[2]),
+                "QA": json.loads(row[3]),
+            }
+        )
     conn.close()
     return metas
 
