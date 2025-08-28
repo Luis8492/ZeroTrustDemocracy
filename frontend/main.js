@@ -19,7 +19,8 @@ function formatSpeech(QA){
 }
 
 async function fetchQuestion(){
-  const evaledIds = [];//await listEvaluatedIDs();
+  // 既に評価済みのQAのIDをIndexedDBから取得
+  const evaledIds = await listEvaluatedIDs();
   const qa = await fetchNextQA(evaledIds);
   if (qa.QA) {
     qa_id = qa.id;
