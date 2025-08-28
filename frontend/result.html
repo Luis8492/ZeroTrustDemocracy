@@ -35,7 +35,7 @@
         const questionerStats = computeGroupedStats(
             metas,
             meta => evalMap.get(meta.id),
-            meta => meta.questioner_party
+            meta => meta.questioner
         );
         renderChart(questionerStats, 'questioner-chart', '議員別平均評価');
 
