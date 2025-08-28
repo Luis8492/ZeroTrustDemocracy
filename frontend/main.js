@@ -36,6 +36,7 @@ function recordEval() {
   const evalValue = parseInt(selected.value);
   saveEvaluation({"QA_id":qa_id,"eval":evalValue});
   fetchQuestion();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
 }
 
 
