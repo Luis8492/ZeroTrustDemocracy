@@ -15,6 +15,7 @@
     </nav>
     <h1>評価結果</h1>
     <div id="results"></div>
+    <canvas id="questioner-chart" width="800" height="400"></canvas>
     <canvas id="party-chart" width="800" height="400"></canvas>
 
     <script type="module">
@@ -31,25 +32,31 @@
         const ids = evaluations.map(e => e.QA_id);
         const metas = await fetchMetaData(ids);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
+        const questionerStats = computeGroupedStats(
+            metas,
+            meta => evalMap.get(meta.id),
+            meta => meta.questioner_party
+        );
+        renderChart(questionerStats, 'questioner-chart', '議員別平均評価');
 
-        const stats = computeGroupedStats(
+        const partyStats = computeGroupedStats(
             metas.filter(m => m.questioner_party),
             meta => evalMap.get(meta.id),
             meta => meta.questioner_party
         );
-        renderChart(stats);
+        renderChart(partyStats, 'party-chart', '政党別平均評価');
     }
 
-    function renderChart(stats) {
+    function renderChart(stats, canvasId, label) {
         const labels = stats.map(s => s.key);
         const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.std, yMax: s.mean + s.std }));
-        const ctx = document.getElementById('party-chart').getContext('2d');
+        const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
             type: 'barWithErrorBars',
             data: {
                 labels,
                 datasets: [{
-                    label: '政党別平均評価',
+                    label,
                     data,
                     backgroundColor: 'rgba(75, 192, 192, 0.5)',
                     borderColor: 'rgba(75, 192, 192, 1)',
