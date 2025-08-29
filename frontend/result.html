@@ -25,11 +25,24 @@
     </div>
     <canvas id="questioner-chart" width="800" height="400"></canvas>
     <canvas id="party-chart" width="800" height="400"></canvas>
+    <div>
+        <label for="filter-questioner">議員:</label>
+        <select id="filter-questioner">
+            <option value="">すべて</option>
+        </select>
+        <label for="filter-party">政党:</label>
+        <select id="filter-party">
+            <option value="">すべて</option>
+        </select>
+    </div>
+    <div id="qa-list"></div>
 
     <script type="module">
     import { fetchMetaData } from './api.js';
     import { listEvaluations, saveEvaluation } from './db.js';
     import { computeGroupedStats } from './stats.js';
+
+    let mergedData = [];
 
     async function showResults() {
         const evaluations = await listEvaluations();
@@ -41,19 +54,24 @@
         const ids = evaluations.map(e => e.QA_id);
         const metas = await fetchMetaData(ids);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
+        mergedData = metas.map(meta => ({ ...meta, eval: evalMap.get(meta.id) }));
+
         const questionerStats = computeGroupedStats(
-            metas,
-            meta => evalMap.get(meta.id),
+            mergedData,
+            meta => meta.eval,
             meta => meta.questioner
         );
         renderChart(questionerStats, 'questioner-chart', '議員別平均評価');
 
         const partyStats = computeGroupedStats(
-            metas.filter(m => m.questioner_party),
-            meta => evalMap.get(meta.id),
+            mergedData.filter(m => m.questioner_party),
+            meta => meta.eval,
             meta => meta.questioner_party
         );
         renderChart(partyStats, 'party-chart', '政党別平均評価');
+
+        populateFilters();
+        renderQAList();
     }
 
     function renderChart(stats, canvasId, label) {
@@ -94,6 +112,57 @@
         });
     }
 
+    function populateFilters() {
+        const questionerSelect = document.getElementById('filter-questioner');
+        const partySelect = document.getElementById('filter-party');
+        const questioners = Array.from(new Set(mergedData.map(m => m.questioner).filter(Boolean))).sort();
+        const parties = Array.from(new Set(mergedData.map(m => m.questioner_party).filter(Boolean))).sort();
+
+        questioners.forEach(q => {
+            const option = document.createElement('option');
+            option.value = q;
+            option.textContent = q;
+            questionerSelect.appendChild(option);
+        });
+
+        parties.forEach(p => {
+            const option = document.createElement('option');
+            option.value = p;
+            option.textContent = p;
+            partySelect.appendChild(option);
+        });
+    }
+
+    function renderQAList() {
+        const qVal = document.getElementById('filter-questioner').value;
+        const pVal = document.getElementById('filter-party').value;
+        const container = document.getElementById('qa-list');
+        const filtered = mergedData.filter(m =>
+            (!qVal || m.questioner === qVal) &&
+            (!pVal || m.questioner_party === pVal)
+        );
+        if (filtered.length === 0) {
+            container.innerText = '対象のQAがありません';
+            return;
+        }
+        container.innerHTML = '';
+        filtered.forEach(item => {
+            const div = document.createElement('div');
+            const header = document.createElement('h3');
+            const partyText = item.questioner_party ? ` (${item.questioner_party})` : '';
+            header.textContent = `${item.questioner}${partyText} 評価: ${item.eval}`;
+            div.appendChild(header);
+            item.QA.forEach(q => {
+                const p = document.createElement('p');
+                p.innerHTML = `<strong>${q.role}</strong>: ${q.comment}`;
+                div.appendChild(p);
+            });
+            container.appendChild(div);
+        });
+    }
+
+    document.getElementById('filter-questioner').addEventListener('change', renderQAList);
+    document.getElementById('filter-party').addEventListener('change', renderQAList);
     document.getElementById('export-csv').addEventListener('click', exportCSV);
     document.getElementById('import-btn').addEventListener('click', importCSV);
     document.addEventListener('DOMContentLoaded', showResults);
