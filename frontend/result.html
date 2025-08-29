@@ -34,6 +34,7 @@
             document.getElementById('results').innerText = '評価がありません';
             return;
         }
+        document.getElementById('results').innerText = `回答数: ${evaluations.length}`;
         const ids = evaluations.map(e => e.QA_id);
         const metas = await fetchMetaData(ids);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
@@ -53,8 +54,8 @@
     }
 
     function renderChart(stats, canvasId, label) {
-        const labels = stats.map(s => s.key);
-        const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.std, yMax: s.mean + s.std }));
+        const labels = stats.map(s => `${s.key} (回答数: ${s.count})`);
+        const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.std, yMax: s.mean + s.std, count: s.count }));
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
             type: 'barWithErrorBars',
@@ -69,6 +70,16 @@
                 }]
             },
             options: {
+                plugins: {
+                    tooltip: {
+                        callbacks: {
+                            label: function(context) {
+                                const { y, count } = context.raw;
+                                return `${context.dataset.label}: ${y.toFixed(2)} (回答数: ${count})`;
+                            }
+                        }
+                    }
+                },
                 scales: {
                     y: {
                         beginAtZero: true,
