@@ -26,7 +26,7 @@
 ---
 
 ### ✅ APIサーバー（FastAPI）
-- **`POST /api/qa/meta`**: 評価済みIDのQAメタ情報を返す
+- **`POST /api/qa/meta`**: 評価済みIDのQAメタ情報を返す（会議名と日次を含む）
 - **`POST /api/qa/next`**: ユーザー未評価のQAをランダムに1件返す
   - 詳しい入出力仕様は[APIドキュメント](API.md)を参照してください。
 
