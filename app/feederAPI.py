@@ -39,9 +39,10 @@ def get_qa_meta(data: EvaledRequest):
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     query = f"""
-        SELECT id, questioner, topic_intro, QA
-        FROM questions
-        WHERE id IN ({','.join('?' for _ in data.evaled_ids)})
+        SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date
+        FROM questions q
+        JOIN meetings m ON q.file_name = m.file_name
+        WHERE q.id IN ({','.join('?' for _ in data.evaled_ids)})
     """
     cur.execute(query, data.evaled_ids)
     metas = []
@@ -54,6 +55,8 @@ def get_qa_meta(data: EvaledRequest):
                 "questioner_party": PARTY_TABLE.get(questioner, ""),
                 "topic_intro": json.loads(row[2]),
                 "QA": json.loads(row[3]),
+                "committee_name": row[4],
+                "committee_date": row[5],
             }
         )
     conn.close()
