@@ -1,9 +1,12 @@
 import os
 
+
 class Anonymizer:
-    pii_dir = 'PIIs'
-    PIIList = []
-    def __init__(self):
+    """Replace personally identifiable information from comments."""
+
+    def __init__(self, pii_dir: str):
+        self.pii_dir = pii_dir
+        self.pii_list: list[str] = []
         self.build_pii_list()
 
     def build_pii_list(self):
@@ -14,9 +17,9 @@ class Anonymizer:
             if os.path.isfile(file_path):
                 with open(file_path, 'r', encoding='utf-8') as f:
                     pii_entries = [line.strip() for line in f if line.strip()]
-                    self.PIIList.extend(pii_entries)
-    
+                    self.pii_list.extend(pii_entries)
+
     def anonymize_comment(self, comment: str) -> str:
-        for PII in self.PIIList:
-            comment = comment.replace(PII,"***")
+        for pii in self.pii_list:
+            comment = comment.replace(pii, "***")
         return comment
