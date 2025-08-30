@@ -1,8 +1,8 @@
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Optional
 from pathlib import Path
-import sqlite3, random, json, csv
+import sqlite3, random, json, csv, re
 
 from anonymizer import Anonymizer
 
@@ -13,13 +13,24 @@ class EvaledRequest(BaseModel):
     municipality: Optional[str] = None
 
 
+_MUNICIPALITY_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+
+
+def _sanitize_municipality(value: str) -> str:
+    """Ensure the municipality value cannot escape the app directory."""
+    if not _MUNICIPALITY_PATTERN.fullmatch(value):
+        raise HTTPException(status_code=400, detail="Invalid municipality")
+    return value
+
+
 def get_context(municipality: str):
+    m = _sanitize_municipality(municipality)
     base_dir = Path(__file__).resolve().parent.parent
-    db_dir = base_dir / "db" / municipality
+    db_dir = base_dir / "db" / m
     db_path = db_dir / "minutes.db"
     if not db_path.exists():
         db_path = base_dir / "db" / "minutes.db"
-    party_file = base_dir / f"name-party-table-{municipality}.csv"
+    party_file = base_dir / f"name-party-table-{m}.csv"
     if not party_file.exists():
         party_file = base_dir / "name-party-table.csv"
     with open(party_file, encoding="utf-8") as f:
