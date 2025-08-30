@@ -1,9 +1,11 @@
+import os
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import sqlite3, random, json, csv
 from pathlib import Path
 from anonymizer import Anonymizer
+from config import load_config
 from fastapi.middleware.cors import CORSMiddleware
 
 app = FastAPI()
@@ -17,6 +19,8 @@ app.add_middleware(
 )
 
 DB_PATH = "db/minutes.db"
+config = load_config(os.getenv("MUNICIPALITY", "default"))
+anonymizer = Anonymizer(pii_dir=config["pii_dir"])
 with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
     PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
@@ -104,12 +108,11 @@ def format_QA(entry: Dict[str, Any]) -> Dict[str, Any]:
 
 def anonymize_QA(QA: List[dict]):
     anonymized_QA = []
-    anonymizer = Anonymizer()
     for speech in QA:
         anonymized_speech = {
-            "mark":speech.get("mark"),
-            "role":speech.get("role"),
-            "comment":anonymizer.anonymize_comment(speech.get("comment")),
+            "mark": speech.get("mark"),
+            "role": speech.get("role"),
+            "comment": anonymizer.anonymize_comment(speech.get("comment")),
         }
         anonymized_QA.append(anonymized_speech)
     return anonymized_QA
