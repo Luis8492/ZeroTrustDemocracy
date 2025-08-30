@@ -15,6 +15,12 @@ from config import load_config
 qa_router = APIRouter(prefix="/api/qa")
 
 
+# Cache anonymizers per municipality to avoid reloading PII files for each
+# request. This prevents expensive disk I/O on repeated calls for the same
+# municipality.
+_ANONYMIZER_CACHE: Dict[str, Anonymizer] = {}
+
+
 class EvaledRequest(BaseModel):
     evaled_ids: List[int] = []
     municipality: Optional[str] = None
@@ -23,7 +29,10 @@ class EvaledRequest(BaseModel):
 def _get_resources(municipality: str) -> tuple[Anonymizer, object, str]:
     """Load config, parser and DB path for the municipality."""
     config = load_config(municipality)
-    anonymizer = Anonymizer(pii_dir=config["pii_dir"])
+    anonymizer = _ANONYMIZER_CACHE.get(municipality)
+    if anonymizer is None:
+        anonymizer = Anonymizer(pii_dir=config["pii_dir"])
+        _ANONYMIZER_CACHE[municipality] = anonymizer
     parser_name = config.get("parser", "setagaya")
     module = import_module(f"parsers.{parser_name}")
     parser_class = getattr(module, f"{parser_name.capitalize()}Parser")
