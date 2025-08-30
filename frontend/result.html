@@ -154,7 +154,10 @@
             div.appendChild(header);
             item.QA.forEach(q => {
                 const p = document.createElement('p');
-                p.innerHTML = `<strong>${q.role}</strong>: ${q.comment}`;
+                const role = document.createElement('strong');
+                role.textContent = q.role;
+                p.appendChild(role);
+                p.appendChild(document.createTextNode(`: ${q.comment}`));
                 div.appendChild(p);
             });
             container.appendChild(div);
