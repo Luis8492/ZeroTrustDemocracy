@@ -28,16 +28,16 @@ class EvaledRequest(BaseModel):
     evaled_ids: List[int] # POSTデータ受け用
 
 @app.post("/api/qa/next")
-def get_next_qa(data: EvaledRequest):
-    non_evaled_ids = extract_non_evaled_QA(data.evaled_ids)
+def get_next_qa(data: EvaledRequest, municipality_id: int = Query(...)):
+    non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, municipality_id)
     if not non_evaled_ids:
         return {"message": "全て評価済みです"}
     target_id = random.choice(non_evaled_ids)
-    qa = get_QA_by_id(target_id)
-    return format_QA(qa)
+    qa = get_QA_by_id(target_id, municipality_id)
+    return format_QA(qa, municipality_id)
 
 @app.post("/api/qa/meta")
-def get_qa_meta(data: EvaledRequest):
+def get_qa_meta(data: EvaledRequest, municipality_id: int = Query(...)):
     if not data.evaled_ids:
         return []
     conn = sqlite3.connect(DB_PATH)
@@ -45,10 +45,10 @@ def get_qa_meta(data: EvaledRequest):
     query = f"""
         SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date
         FROM questions q
-        JOIN meetings m ON q.file_name = m.file_name
-        WHERE q.id IN ({','.join('?' for _ in data.evaled_ids)})
+        JOIN meetings m ON q.file_name = m.file_name AND q.municipality_id = m.municipality_id
+        WHERE q.id IN ({','.join('?' for _ in data.evaled_ids)}) AND q.municipality_id = ?
     """
-    cur.execute(query, data.evaled_ids)
+    cur.execute(query, data.evaled_ids + [municipality_id])
     metas = []
     for row in cur.fetchall():
         questioner = row[1]
@@ -66,22 +66,22 @@ def get_qa_meta(data: EvaledRequest):
     conn.close()
     return metas
 
-def extract_non_evaled_QA(evaled_ids: List[int]) -> List[int]:
+def extract_non_evaled_QA(evaled_ids: List[int], municipality_id: int) -> List[int]:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
     if evaled_ids:
-        q = f"SELECT id FROM questions WHERE id NOT IN ({','.join(['?'] * len(evaled_ids))})"
-        cur.execute(q, evaled_ids)
+        q = f"SELECT id FROM questions WHERE municipality_id = ? AND id NOT IN ({','.join(['?'] * len(evaled_ids))})"
+        cur.execute(q, [municipality_id] + evaled_ids)
     else:
-        cur.execute("SELECT id FROM questions")
+        cur.execute("SELECT id FROM questions WHERE municipality_id = ?", (municipality_id,))
     ids = [row[0] for row in cur.fetchall()]
     conn.close()
     return ids
 
-def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
+def get_QA_by_id(qa_id: int, municipality_id: int) -> Dict[str, Any]:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
+    cur.execute("SELECT id,file_name,topic_intro,QA FROM questions WHERE id=? AND municipality_id=?", (qa_id, municipality_id))
     row = cur.fetchone()
     conn.close()
     return {
@@ -91,10 +91,10 @@ def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
         "QA": row[3]
     }
 
-def format_QA(entry: Dict[str, Any]) -> Dict[str, Any]:
+def format_QA(entry: Dict[str, Any], municipality_id: int) -> Dict[str, Any]:
     conn = sqlite3.connect(DB_PATH)
     cur = conn.cursor()
-    cur.execute("SELECT id,date,name FROM meetings WHERE file_name=?", (entry.get("file_name"),))
+    cur.execute("SELECT id,date,name FROM meetings WHERE file_name=? AND municipality_id=?", (entry.get("file_name"), municipality_id))
     row = cur.fetchone()
     conn.close()
     return {
