@@ -5,7 +5,7 @@ import json
 from parsers.base import BaseMinuteParser
 from parsers.setagaya import SetagayaParser
 
-def analyze_unprocessed_minutes(parser: BaseMinuteParser, db_path="db/minutes.db"):
+def analyze_unprocessed_minutes(parser: BaseMinuteParser, municipality_id: int, db_path="db/minutes.db"):
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     rows = query_not_analyzed_data(cur)
@@ -17,7 +17,7 @@ def analyze_unprocessed_minutes(parser: BaseMinuteParser, db_path="db/minutes.db
             continue
         try:
             minute_json = analyze_minute(file_path, parser)
-            save_minute_to_db(minute_json, conn)
+            save_minute_to_db(minute_json, conn, municipality_id)
             update_analyzed_status(conn, cur)
         except Exception as e:
             print(f"[ERROR] 分析失敗（ID={minute_id}）: {e}")
@@ -146,11 +146,11 @@ def extract_QAs(minute):
         minute_QAs.append(QAs)
     return minute_QAs
 
-def save_minute_to_db(minute_json,conn):
-    save_meta_info(minute_json,conn)
-    save_QAs(minute_json,conn)
+def save_minute_to_db(minute_json,conn, municipality_id: int):
+    save_meta_info(minute_json,conn, municipality_id)
+    save_QAs(minute_json,conn, municipality_id)
 
-def save_meta_info(minute, conn):
+def save_meta_info(minute, conn, municipality_id: int):
     file_name = minute["file_name"]
     date = minute["meeting"]["date"]
     name = minute["meeting"]["name"]
@@ -160,16 +160,17 @@ CREATE TABLE IF NOT EXISTS meetings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_name TEXT,
     date TEXT,
-    name TEXT
+    name TEXT,
+    municipality_id INTEGER
 )
 """)
     cur.execute(
-        "INSERT OR IGNORE INTO meetings (file_name, date, name) VALUES (?, ?, ?)",
-        (file_name,date,name)
+        "INSERT OR IGNORE INTO meetings (file_name, date, name, municipality_id) VALUES (?, ?, ?, ?)",
+        (file_name, date, name, municipality_id)
     )
     conn.commit()
 
-def save_QAs(minute,conn):
+def save_QAs(minute,conn, municipality_id: int):
     file_name = minute["file_name"]
     cur = conn.cursor()
     cur.execute("""
@@ -178,7 +179,8 @@ CREATE TABLE IF NOT EXISTS questions (
     file_name TEXT,
     topic_intro TEXT,
     QA TEXT,
-    questioner TEXT
+    questioner TEXT,
+    municipality_id INTEGER
 )
 """)
     for topic in minute["QAs"]:
@@ -198,12 +200,16 @@ CREATE TABLE IF NOT EXISTS questions (
                     continue
                 QA_text = json.dumps(QA,indent=4,ensure_ascii=False)
                 cur.execute(
-                    "INSERT OR IGNORE INTO questions (file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?)",
-                    (file_name,intro,QA_text,questioner)
+                    "INSERT OR IGNORE INTO questions (file_name, topic_intro, QA, questioner, municipality_id) VALUES (?, ?, ?, ?, ?)",
+                    (file_name, intro, QA_text, questioner, municipality_id)
                 )
     conn.commit()
 
 
 if __name__ == "__main__":
     parser = SetagayaParser()
-    analyze_unprocessed_minutes(parser)
+    import argparse
+    argparser = argparse.ArgumentParser()
+    argparser.add_argument("--municipality-id", type=int, required=True)
+    args = argparser.parse_args()
+    analyze_unprocessed_minutes(parser, args.municipality_id)
