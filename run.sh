@@ -1,2 +1,2 @@
-cd app;../../bin/python3 minute_fetcher.py;../../bin/python3 minute_analyzer.py;../../bin/python3 -m uvicorn feederAPI:app --host localhost --port 8000 & # API起動
+cd app;../../bin/python3 minute_fetcher.py;../../bin/python3 minute_analyzer.py --municipality-id 13112;../../bin/python3 -m uvicorn feederAPI:app --host localhost --port 8000 & # API起動
 cd ../frontend;../../bin/python3 -m http.server 8001 --bind localhost

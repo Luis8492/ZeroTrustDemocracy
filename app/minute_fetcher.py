@@ -84,7 +84,7 @@ def download_minute(detail_page):
     with detail_page.expect_download() as download_info:
         detail_page.locator("frame[name=\"sidebar_head\"]").content_frame.get_by_role("button", name="ダウンロード・印刷").click()
     download = download_info.value
-    file_name = "raw_minutes/" + re.sub(r'\W+', '_', url[-14:]) + ".txt"
+    file_name = "raw_minutes/" + re.sub(r'\W+', '_', detail_page.url[-14:]) + ".txt"
     download.save_as(file_name)
     return file_name
 
