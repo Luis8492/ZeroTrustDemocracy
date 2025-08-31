@@ -1,4 +1,4 @@
-export async function fetchNextQA(evaledIds = [], municipality = "default") {
+export async function fetchNextQA(evaledIds = [], municipality = "setagaya") {
   const url = `http://localhost:8000/api/qa/next?municipality=${encodeURIComponent(municipality)}`;
   const res = await fetch(url, {
     method: "POST",
@@ -17,7 +17,7 @@ export async function fetchNextQA(evaledIds = [], municipality = "default") {
   return data;
 }
 
-export async function fetchMetaData(evaledIds = [], municipality = "default") {
+export async function fetchMetaData(evaledIds = [], municipality = "setagaya") {
   const url = `http://localhost:8000/api/qa/meta?municipality=${encodeURIComponent(municipality)}`;
   const res = await fetch(url, {
     method: "POST",
