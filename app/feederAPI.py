@@ -11,13 +11,19 @@ from config_loader import load
 
 ALLOWED_MUNICIPALITIES = {"setagaya"}
 
+
 def validate_municipality(name: str) -> str:
     if name not in ALLOWED_MUNICIPALITIES:
         raise HTTPException(status_code=400, detail="Unsupported municipality")
     return name
 
-base_config = load("setagaya")
 
+def load_party_table(path: str) -> Dict[str, str]:
+    with open(path, encoding="utf-8") as f:
+        return {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
+
+
+base_config = load("setagaya")
 app = FastAPI()
 
 app.add_middleware(
@@ -27,8 +33,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
-    PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
 
 class EvaledRequest(BaseModel):
@@ -58,6 +62,8 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
+    party_table = load_party_table(config["party_table_path"])
+
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
@@ -74,7 +80,7 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
             {
                 "id": row[0],
                 "questioner": questioner,
-                "questioner_party": PARTY_TABLE.get(questioner, ""),
+                "questioner_party": party_table.get(questioner, ""),
                 "topic_intro": json.loads(row[2]),
                 "QA": json.loads(row[3]),
                 "committee_name": row[4],
@@ -119,19 +125,19 @@ def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
         "id": entry.get("id"),
         "committee_date": row[1],
         "committee_name": row[2],
-        "topic_intro": anonymize_QA(json.loads(entry.get("topic_intro"))),
-        "QA": anonymize_QA(json.loads(entry.get("QA"))),
+        "topic_intro": anonymize_QA(json.loads(entry.get("topic_intro")), config),
+        "QA": anonymize_QA(json.loads(entry.get("QA")), config),
         "eval_target": "◆"
     }
 
-def anonymize_QA(QA: List[dict]):
+def anonymize_QA(QA: List[dict], config: Dict[str, Any]):
     anonymized_QA = []
-    anonymizer = Anonymizer()
+    anonymizer = Anonymizer(config.get("pii_files"))
     for speech in QA:
         anonymized_speech = {
-            "mark":speech.get("mark"),
-            "role":speech.get("role"),
-            "comment":anonymizer.anonymize_comment(speech.get("comment")),
+            "mark": speech.get("mark"),
+            "role": speech.get("role"),
+            "comment": anonymizer.anonymize_comment(speech.get("comment")),
         }
         anonymized_QA.append(anonymized_speech)
     return anonymized_QA
