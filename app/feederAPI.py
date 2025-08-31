@@ -1,10 +1,13 @@
 from fastapi import FastAPI, Query
 from pydantic import BaseModel
 from typing import List, Dict, Any
-import sqlite3, random, json, csv
+import sqlite3, random, json, csv, sys
 from pathlib import Path
 from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
+
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from config_loader import load
 
 app = FastAPI()
 
@@ -16,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = "db/minutes.db"
+DB_PATH = load("setagata")["db_path"]
 with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
     PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
