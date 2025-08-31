@@ -43,8 +43,8 @@ def query_not_analyzed_data(cur):
 def analyze_minute(file_path: str, parser: BaseMinuteParser) -> dict:
     minute_text = open(file_path, "r", encoding="cp932", errors="replace").read()
     minute_json = minute_converter.convert_minute_txt_to_json(minute_text, parser)
-    minute_json["QAs"] = extract_QAs(minute_json)
     minute_json["file_name"] = file_path.split("/")[-1]
+    minute_json["QAs"] = extract_QAs(minute_json)
     return minute_json
 
 
@@ -105,6 +105,10 @@ def extract_QAs(minute):
                     state = new_state
                 else:
                     transition_log = build_state_transition_log(topic_body, speech_index+1)
+                    print(f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}")
+                    print(
+                        f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
+                    )
                     raise RuntimeError("Unknown state transition.("+state+">?)["+transition_log+"]")
             elif state[:2] == "QA":
                 if topic_body[speech_index]["mark"] != "○":
@@ -146,6 +150,12 @@ def extract_QAs(minute):
                                         break
                                 else:
                                     transition_log = build_state_transition_log(topic_body, i+1)
+                                    print(
+                                        f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
+                                    )
+                                    print(
+                                        f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
+                                    )
                                     raise RuntimeError("Unknown state transition.("+state+">?)["+transition_log+"]")
                             else:
                                 break
