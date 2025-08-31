@@ -6,6 +6,10 @@ import time
 from playwright.sync_api import Playwright
 
 from .BaseMinuteFetcher import BaseMinuteFetcher
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class SetagayaFetcher(BaseMinuteFetcher):
@@ -37,14 +41,14 @@ class SetagayaFetcher(BaseMinuteFetcher):
 
     def download_new_minutes(self, conn, context, url):
         if self.is_url_downloaded(conn, url):
-            print(f"[SKIP] Already downloaded: {url}")
+            logger.info(f"[SKIP] Already downloaded: {url}")
         else:
             detail_page = context.new_page()
             detail_page.goto(url)
             self._set_download_settings(detail_page)
             file_name = self._download_minute(detail_page)
             self.mark_as_downloaded(conn, url, file_name)
-            print(f"[DONE] Downloaded: {url} → {file_name}")
+            logger.info(f"[DONE] Downloaded: {url} → {file_name}")
             detail_page.close()
 
     def _set_download_settings(self, detail_page):
