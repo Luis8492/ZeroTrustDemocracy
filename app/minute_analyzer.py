@@ -13,7 +13,7 @@ from config_loader import load
 
 
 def analyze_unprocessed_minutes(
-    municipality: str = "setagata", parser: BaseMinuteParser | None = None
+    municipality: str = "setagaya", parser: BaseMinuteParser | None = None
 ):
     if parser is None:
         parser = get_parser(municipality)
@@ -49,7 +49,7 @@ def analyze_minute(file_path: str, parser: BaseMinuteParser) -> dict:
 
 
 def get_parser(municipality: str) -> BaseMinuteParser:
-    if municipality == "setagata":
+    if municipality == "setagaya":
         return SetagayaParser()
     raise ValueError(f"Unsupported municipality: {municipality}")
 
