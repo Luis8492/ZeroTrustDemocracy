@@ -5,8 +5,8 @@ import sys
 from pathlib import Path
 
 import minute_converter
-from parsers.base_minute_parser import BaseMinuteParser
-from parsers.setagaya_parser import SetagayaParser
+from municipal_modules.parsers.base_minute_parser import BaseMinuteParser
+from municipal_modules.parsers.setagaya_parser import SetagayaParser
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
