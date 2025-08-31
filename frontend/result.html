@@ -25,6 +25,17 @@
     </div>
     <canvas id="questioner-chart" width="800" height="400"></canvas>
     <canvas id="party-chart" width="800" height="400"></canvas>
+    <div id="filters">
+        <label for="filter-questioner">議員:</label>
+        <select id="filter-questioner">
+            <option value="">すべて</option>
+        </select>
+        <label for="filter-party">政党:</label>
+        <select id="filter-party">
+            <option value="">すべて</option>
+        </select>
+    </div>
+    <div id="qa-list"></div>
 
     <script type="module">
     import { fetchMetaData } from './api.js';
@@ -56,6 +67,10 @@
             meta => meta.questioner_party
         );
         renderChart(partyStats, 'party-chart', '政党別平均評価');
+
+        const allData = metas.map(meta => ({ ...meta, eval: evalMap.get(meta.id) }));
+        setupFilters(allData);
+        renderQAList(allData);
     }
 
     function renderChart(stats, canvasId, label) {
@@ -94,6 +109,80 @@
                 }
             }
         });
+    }
+
+    function setupFilters(data) {
+        const qSel = document.getElementById('filter-questioner');
+        const pSel = document.getElementById('filter-party');
+        qSel.length = 1;
+        pSel.length = 1;
+        const questioners = [...new Set(data.map(d => d.questioner).filter(Boolean))].sort();
+        questioners.forEach(q => {
+            const opt = document.createElement('option');
+            opt.value = q;
+            opt.textContent = q;
+            qSel.appendChild(opt);
+        });
+        const parties = [...new Set(data.map(d => d.questioner_party).filter(Boolean))].sort();
+        parties.forEach(p => {
+            const opt = document.createElement('option');
+            opt.value = p;
+            opt.textContent = p;
+            pSel.appendChild(opt);
+        });
+        qSel.addEventListener('change', () => renderQAList(data));
+        pSel.addEventListener('change', () => renderQAList(data));
+    }
+
+    function renderQAList(data) {
+        const qValue = document.getElementById('filter-questioner').value;
+        const pValue = document.getElementById('filter-party').value;
+        const filtered = data.filter(d =>
+            (qValue === '' || d.questioner === qValue) &&
+            (pValue === '' || d.questioner_party === pValue)
+        );
+        const container = document.getElementById('qa-list');
+        container.innerHTML = '';
+        if (filtered.length === 0) {
+            container.textContent = '該当するQAがありません';
+            return;
+        }
+        const table = document.createElement('table');
+        const thead = document.createElement('thead');
+        const headerRow = document.createElement('tr');
+        ['議員', '政党', 'QA', '評価'].forEach(h => {
+            const th = document.createElement('th');
+            th.textContent = h;
+            headerRow.appendChild(th);
+        });
+        thead.appendChild(headerRow);
+        table.appendChild(thead);
+        const tbody = document.createElement('tbody');
+        filtered.forEach(item => {
+            const tr = document.createElement('tr');
+            const qaText = document.createElement('td');
+            item.QA.forEach(q => {
+                const div = document.createElement('div');
+                div.textContent = q.comment;
+                qaText.appendChild(div);
+            });
+            const cells = [
+                item.questioner || '',
+                item.questioner_party || '',
+                qaText,
+                item.eval
+            ];
+            cells.forEach(c => {
+                const td = c instanceof HTMLElement ? c : document.createElement('td');
+                if (!(c instanceof HTMLElement)) {
+                    td.textContent = c;
+                }
+                tr.appendChild(td);
+            });
+            tbody.appendChild(tr);
+        });
+        table.appendChild(tbody);
+        container.appendChild(table);
     }
 
     document.getElementById('export-csv').addEventListener('click', exportCSV);
