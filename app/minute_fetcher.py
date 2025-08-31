@@ -7,10 +7,9 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
 def run(playwright: Playwright, municipality: str = "setagata") -> None:
-    prepare_os_dirctories()
     config = load(municipality)
+    prepare_os_dirctories(config)
     conn = sqlite3.connect(config["db_path"])
-    init_db(conn)
     browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
     page = context.new_page()
@@ -22,21 +21,9 @@ def run(playwright: Playwright, municipality: str = "setagata") -> None:
     conn.close()
     browser.close()
 
-def prepare_os_dirctories():
-    os.makedirs("db", exist_ok=True)
+def prepare_os_dirctories(config):
+    Path(config["db_path"]).parent.mkdir(parents=True, exist_ok=True)
     os.makedirs("raw_minutes", exist_ok=True)
-
-def init_db(conn):
-    cur = conn.cursor()
-    cur.execute("""
-CREATE TABLE IF NOT EXISTS minutes (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT UNIQUE,
-    file_name TEXT,
-    analyzed INTEGER
-)
-""")
-    conn.commit()
 
 def set_search_setting_and_click_search(page):
     frame = page.frame(name="TOP")
