@@ -4,10 +4,11 @@ import random
 import json
 import csv
 import importlib
+import logging
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
 from anonymizer import Anonymizer
@@ -15,6 +16,8 @@ from config import load_config
 
 # APIRouter for QA endpoints
 qa_router = APIRouter(prefix="/api/qa")
+
+logger = logging.getLogger(__name__)
 
 
 class EvaledRequest(BaseModel):
@@ -105,50 +108,65 @@ def get_qa_meta(data: EvaledRequest, municipality: Optional[str] = Query(None)):
 def extract_non_evaled_QA(
     evaled_ids: List[int], db_path: str, municipality_id: Optional[int]
 ) -> List[int]:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    if municipality_id is not None:
-        if evaled_ids:
-            placeholders = ",".join(["?"] * len(evaled_ids))
-            q = (
-                f"SELECT id FROM questions WHERE municipality_id = ? "
-                f"AND id NOT IN ({placeholders})"
-            )
-            cur.execute(q, [municipality_id] + evaled_ids)
+    conn = None
+    ids: List[int] = []
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        if municipality_id is not None:
+            if evaled_ids:
+                placeholders = ",".join(["?"] * len(evaled_ids))
+                q = (
+                    f"SELECT id FROM questions WHERE municipality_id = ? "
+                    f"AND id NOT IN ({placeholders})"
+                )
+                cur.execute(q, [municipality_id] + evaled_ids)
+            else:
+                cur.execute(
+                    "SELECT id FROM questions WHERE municipality_id = ?",
+                    (municipality_id,),
+                )
         else:
-            cur.execute(
-                "SELECT id FROM questions WHERE municipality_id = ?",
-                (municipality_id,),
-            )
-    else:
-        if evaled_ids:
-            placeholders = ",".join(["?"] * len(evaled_ids))
-            q = f"SELECT id FROM questions WHERE id NOT IN ({placeholders})"
-            cur.execute(q, evaled_ids)
-        else:
-            cur.execute("SELECT id FROM questions")
-    ids = [row[0] for row in cur.fetchall()]
-    conn.close()
+            if evaled_ids:
+                placeholders = ",".join(["?"] * len(evaled_ids))
+                q = f"SELECT id FROM questions WHERE id NOT IN ({placeholders})"
+                cur.execute(q, evaled_ids)
+            else:
+                cur.execute("SELECT id FROM questions")
+        ids = [row[0] for row in cur.fetchall()]
+    except sqlite3.Error:
+        logger.exception("Failed to extract non-evaluated QA IDs")
+        raise HTTPException(status_code=500, detail="Failed to query database")
+    finally:
+        if conn:
+            conn.close()
     return ids
 
 
 def get_QA_by_id(
     qa_id: int, db_path: str, municipality_id: Optional[int]
 ) -> Dict[str, Any]:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    if municipality_id is not None:
-        cur.execute(
-            "SELECT id,file_name,topic_intro,QA FROM questions WHERE id=? AND municipality_id=?",
-            (qa_id, municipality_id),
-        )
-    else:
-        cur.execute(
-            "SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?",
-            (qa_id,),
-        )
-    row = cur.fetchone()
-    conn.close()
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        if municipality_id is not None:
+            cur.execute(
+                "SELECT id,file_name,topic_intro,QA FROM questions WHERE id=? AND municipality_id=?",
+                (qa_id, municipality_id),
+            )
+        else:
+            cur.execute(
+                "SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?",
+                (qa_id,),
+            )
+        row = cur.fetchone()
+    except sqlite3.Error:
+        logger.exception("Failed to retrieve QA by id %s", qa_id)
+        raise HTTPException(status_code=500, detail="Failed to query database")
+    finally:
+        if conn:
+            conn.close()
     return {
         "id": qa_id,
         "file_name": row[1],
@@ -160,20 +178,27 @@ def get_QA_by_id(
 def format_QA(
     entry: Dict[str, Any], db_path: str, municipality_id: Optional[int], anonymizer: Anonymizer
 ) -> Dict[str, Any]:
-    conn = sqlite3.connect(db_path)
-    cur = conn.cursor()
-    if municipality_id is not None:
-        cur.execute(
-            "SELECT id,date,name FROM meetings WHERE file_name=? AND municipality_id=?",
-            (entry.get("file_name"), municipality_id),
-        )
-    else:
-        cur.execute(
-            "SELECT id,date,name FROM meetings WHERE file_name=?",
-            (entry.get("file_name"),),
-        )
-    row = cur.fetchone()
-    conn.close()
+    conn = None
+    try:
+        conn = sqlite3.connect(db_path)
+        cur = conn.cursor()
+        if municipality_id is not None:
+            cur.execute(
+                "SELECT id,date,name FROM meetings WHERE file_name=? AND municipality_id=?",
+                (entry.get("file_name"), municipality_id),
+            )
+        else:
+            cur.execute(
+                "SELECT id,date,name FROM meetings WHERE file_name=?",
+                (entry.get("file_name"),),
+            )
+        row = cur.fetchone()
+    except sqlite3.Error:
+        logger.exception("Failed to format QA for entry %s", entry.get("id"))
+        raise HTTPException(status_code=500, detail="Failed to query database")
+    finally:
+        if conn:
+            conn.close()
     return {
         "id": entry.get("id"),
         "committee_date": row[1],
