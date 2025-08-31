@@ -8,7 +8,6 @@
 - `minute_converter.py` - 議事録を構造化データに変換
 - `minute_analyzer.py` - 解析用スクリプト
 - `anonymizer.py` - `PIIs/` 内のリストを用いて個人情報を匿名化
-- `remove_non_question_qas.py` - 質問になっていないQAを除外
 - `parsers/` - 議事録パーサーの実装
 - `PIIs/` - 個人情報リスト
 - `raw_minutes/` - サンプル議事録テキスト

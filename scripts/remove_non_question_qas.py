@@ -4,10 +4,10 @@ from pathlib import Path
 import sys
 
 # Ensure the repository root is on ``sys.path`` so that this script can be
-# executed directly (e.g. ``python app/remove_non_question_qas.py``) without
-# ``ModuleNotFoundError``. When run as a standalone script the ``app`` directory
-# is placed on the module search path, but the project root (which contains the
-# ``utils`` package) is not. Prepending the root fixes the import.
+# executed directly (e.g. ``python scripts/remove_non_question_qas.py``) without
+# ``ModuleNotFoundError``. When run as a standalone script the ``scripts``
+# directory is placed on the module search path, but the project root (which
+# contains the ``utils`` package) is not. Prepending the root fixes the import.
 repo_root = Path(__file__).resolve().parents[1]
 if str(repo_root) not in sys.path:
     sys.path.insert(0, str(repo_root))
@@ -31,7 +31,7 @@ def has_question_mark(qa_text: str) -> bool:
     return False
 
 def main():
-    db_path = Path(__file__).resolve().parent / "db" / "minutes.db"
+    db_path = repo_root / "db" / "minutes.db"
     conn = sqlite3.connect(db_path)
     cur = conn.cursor()
     cur.execute("SELECT id, QA FROM questions")
