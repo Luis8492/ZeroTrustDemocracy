@@ -23,3 +23,8 @@ class BaseMinuteParser(ABC):
     def extract_speeches(self, topic_text: str) -> List[Dict[str, Any]]:
         """Extract individual speeches from a topic section."""
         raise NotImplementedError
+
+    @abstractmethod
+    def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
+        """Extract Q&A sequences from a minute structure."""
+        raise NotImplementedError
