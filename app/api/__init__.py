@@ -167,6 +167,8 @@ def get_QA_by_id(
     finally:
         if conn:
             conn.close()
+            if row is None:
+              raise HTTPException(status_code=404, detail="QA not found")
     return {
         "id": qa_id,
         "file_name": row[1],
@@ -199,6 +201,8 @@ def format_QA(
     finally:
         if conn:
             conn.close()
+            if row is None:
+              raise HTTPException(status_code=404, detail="QA not found")
     return {
         "id": entry.get("id"),
         "committee_date": row[1],
