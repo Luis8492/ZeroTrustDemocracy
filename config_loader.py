@@ -2,13 +2,14 @@ from pathlib import Path
 import yaml
 
 base_dir = Path(__file__).resolve().parent
-_ALLOWED_MUNICIPALITIES = {p.stem for p in (base_dir / 'config').glob('*.yaml')}
+config_dir = base_dir / 'app' / 'municipal_modules' / 'config'
+_ALLOWED_MUNICIPALITIES = {p.stem for p in config_dir.glob('*.yaml')}
 
 
 def load(municipality: str):
     if municipality not in _ALLOWED_MUNICIPALITIES:
         raise ValueError(f"Unsupported municipality: {municipality}")
-    config_path = base_dir / 'config' / f'{municipality}.yaml'
+    config_path = config_dir / f'{municipality}.yaml'
     with open(config_path, 'r', encoding='utf-8') as f:
         data = yaml.safe_load(f)
     # resolve paths relative to repo root
