@@ -1,4 +1,4 @@
-db_path: db/setagata.db
+db_path: db/setagaya.db
 pii_dir: app/PIIs
 fetch_url: https://kugi.city.setagaya.tokyo.jp/voices/
 allow_origins:
