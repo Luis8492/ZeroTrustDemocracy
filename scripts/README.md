@@ -21,3 +21,13 @@ python scripts/copy_setagaya_db.py
 python scripts/init_db.py [municipality]
 ```
 `municipality` を省略した場合は `setagaya` が使用されます。
+
+## remove_non_question_qas.py
+
+`db/minutes.db` から質問になっていない QA を削除するスクリプトです。
+
+### 使い方
+```bash
+python scripts/remove_non_question_qas.py
+```
+実行すると削除した件数がログに表示されます。
