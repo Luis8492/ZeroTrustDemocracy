@@ -1,3 +1,5 @@
+"""Parser implementation for Setagaya municipal meeting minutes."""
+
 from __future__ import annotations
 
 import re
