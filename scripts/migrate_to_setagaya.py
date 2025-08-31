@@ -6,6 +6,8 @@ import argparse
 import shutil
 import sqlite3
 
+SETAGAYA_ID = 13112
+
 
 def create_default_db(path: Path) -> None:
     """Generate a default SQLite database with sample data."""
@@ -20,7 +22,8 @@ def create_default_db(path: Path) -> None:
             id INTEGER PRIMARY KEY AUTOINCREMENT,
             file_name TEXT,
             date TEXT,
-            name TEXT
+            name TEXT,
+            municipality_id INTEGER
         )
         """
     )
@@ -31,17 +34,18 @@ def create_default_db(path: Path) -> None:
             file_name TEXT,
             topic_intro TEXT,
             QA TEXT,
-            questioner TEXT
+            questioner TEXT,
+            municipality_id INTEGER
         )
         """
     )
     cur.execute(
-        "INSERT INTO meetings (file_name, date, name) VALUES (?, ?, ?)",
-        ("sample.txt", "2024-01-01", "サンプル会議"),
+        "INSERT INTO meetings (file_name, date, name, municipality_id) VALUES (?, ?, ?, ?)",
+        ("sample.txt", "2024-01-01", "サンプル会議", SETAGAYA_ID),
     )
     cur.execute(
-        "INSERT INTO questions (file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?)",
-        ("sample.txt", "sample intro", "sample QA", "サンプル議員"),
+        "INSERT INTO questions (file_name, topic_intro, QA, questioner, municipality_id) VALUES (?, ?, ?, ?, ?)",
+        ("sample.txt", "sample intro", "sample QA", "サンプル議員", SETAGAYA_ID),
     )
     conn.commit()
     conn.close()
