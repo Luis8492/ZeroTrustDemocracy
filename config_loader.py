@@ -6,6 +6,16 @@ config_dir = base_dir / 'app' / 'municipal_modules' / 'config'
 _ALLOWED_MUNICIPALITIES = {p.stem for p in config_dir.glob('*.yaml')}
 
 
+def load_global() -> dict:
+    """Load global application configuration."""
+    config_path = base_dir / 'config.yaml'
+    if not config_path.exists():
+        return {}
+    with open(config_path, 'r', encoding='utf-8') as f:
+        data = yaml.safe_load(f)
+    return data or {}
+
+
 def load(municipality: str):
     if municipality not in _ALLOWED_MUNICIPALITIES:
         raise ValueError(f"Unsupported municipality: {municipality}")
