@@ -78,6 +78,9 @@
 ### 初回セットアップ
 
 ```bash
+# 依存関係をインストール
+pip install -r requirements.txt
+
 # Python側 API サーバーを起動
 cd ZeroTrustDemocracy
 python3 -m uvicorn app.feederAPI:app --host 0.0.0.0 --port 8000
