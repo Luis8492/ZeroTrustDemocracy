@@ -42,6 +42,7 @@
     import { listEvaluations, saveEvaluation } from './db.js';
     import { computeGroupedStats } from './stats.js';
 
+    const MUNICIPALITY = "setagaya";
     let mergedData = [];
 
     async function showResults() {
@@ -52,7 +53,7 @@
         }
         document.getElementById('results').innerText = `回答数: ${evaluations.length}`;
         const ids = evaluations.map(e => e.QA_id);
-        const metas = await fetchMetaData(ids);
+        const metas = await fetchMetaData(ids, MUNICIPALITY);
         const evalMap = new Map(evaluations.map(e => [e.QA_id, e.eval]));
         mergedData = metas.map(meta => ({ ...meta, eval: evalMap.get(meta.id) }));
 
