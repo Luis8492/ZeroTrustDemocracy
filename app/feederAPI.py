@@ -36,8 +36,11 @@ class EvaledRequest(BaseModel):
 
 @app.post("/api/qa/next")
 def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
-    municipality = validate_municipality(municipality)
-    config = load(municipality)
+    try:
+        municipality = validate_municipality(municipality)
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, config)
     if not non_evaled_ids:
         return {"message": "全て評価済みです"}
@@ -49,8 +52,12 @@ def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
 def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     if not data.evaled_ids:
         return []
-    municipality = validate_municipality(municipality)
-    config = load(municipality)
+    try:
+        municipality = validate_municipality(municipality)
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
