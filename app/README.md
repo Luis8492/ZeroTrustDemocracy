@@ -8,7 +8,10 @@
 - `minute_converter.py` - 議事録を構造化データに変換
 - `minute_analyzer.py` - 解析用スクリプト
 - `anonymizer.py` - `PIIs/` 内のリストを用いて個人情報を匿名化
-- `parsers/` - 議事録パーサーの実装
+- `remove_non_question_qas.py` - 質問になっていないQAを除外
+- `municipal_modules/` - 自治体ごとの実装
+  - `parsers/` - 議事録パーサーの実装
+  - `fetchers/` - 議事録取得用フェッチャー
 - `PIIs/` - 個人情報リスト
 - `raw_minutes/` - サンプル議事録テキスト
 - `name-party-table.csv` - 氏名と所属政党の対応表
