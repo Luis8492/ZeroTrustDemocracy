@@ -1,11 +1,18 @@
 import sqlite3
-import os,re
+import os, re
 import json
+import sys
+from pathlib import Path
 
 import minute_converter
 
-def analyze_unprocessed_minutes(db_path="db/minutes.db"):
-    conn = sqlite3.connect(db_path)
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from config_loader import load
+
+
+def analyze_unprocessed_minutes(municipality: str = "setagata"):
+    config = load(municipality)
+    conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     rows = query_not_analyzed_data(cur)
     print(f"[INFO] 未分析のファイル数: {len(rows)}")

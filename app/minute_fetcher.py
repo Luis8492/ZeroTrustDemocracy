@@ -1,15 +1,20 @@
-import html,re,urllib
+import html, re, urllib
 from playwright.sync_api import Playwright, sync_playwright, expect
-import sqlite3,os,time
+import sqlite3, os, time, sys
+from pathlib import Path
 
-def run(playwright: Playwright) -> None:
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+from config_loader import load
+
+def run(playwright: Playwright, municipality: str = "setagata") -> None:
     prepare_os_dirctories()
-    conn = sqlite3.connect("db/minutes.db")
+    config = load(municipality)
+    conn = sqlite3.connect(config["db_path"])
     init_db(conn)
     browser = playwright.chromium.launch(headless=False)
     context = browser.new_context()
     page = context.new_page()
-    page.goto("https://kugi.city.setagaya.tokyo.jp/voices/")
+    page.goto(config["fetch_url"])
     set_search_setting_and_click_search(page)
     urls = extract_minutes_urls(page)
     for url in urls:
