@@ -1,4 +1,20 @@
-# GET /api/qa/next へのレスポンス例
+# App
+
+議会議事録の解析やAPIサーバーを含むバックエンドコードを格納しています。
+
+## 主なファイルとディレクトリ
+
+- `feederAPI.py` - FastAPI アプリケーション
+- `minute_converter.py` - 議事録を構造化データに変換
+- `minute_analyzer.py` - 解析用スクリプト
+- `anonymizer.py` - `PIIs/` 内のリストを用いて個人情報を匿名化
+- `remove_non_question_qas.py` - 質問になっていないQAを除外
+- `parsers/` - 議事録パーサーの実装
+- `PIIs/` - 個人情報リスト
+- `raw_minutes/` - サンプル議事録テキスト
+- `name-party-table.csv` - 氏名と所属政党の対応表
+
+## GET /api/qa/next へのレスポンス例
 ```json
 {
     "id": 253,

@@ -60,6 +60,17 @@
 
 ---
 
+## 📁 ディレクトリ構成
+
+- `app/` - バックエンドスクリプトと解析ツール
+- `config/` - 議事録取得や解析の設定ファイル
+- `fetchers/` - 議事録データをダウンロードするモジュール
+- `frontend/` - クライアントサイドのHTMLとJavaScript
+- `scripts/` - メンテナンス用の補助スクリプト
+- `db/` - SQLiteデータベースを格納するディレクトリ
+
+---
+
 ## 📦 ローカル開発
 
 ### 初回セットアップ
@@ -73,3 +84,4 @@ python3 -m uvicorn app.feederAPI:app --host 0.0.0.0 --port 8000
 cd frontend
 python3 -m http.server 8001
 # => アクセス: http://localhost:8001/index.html
+```
