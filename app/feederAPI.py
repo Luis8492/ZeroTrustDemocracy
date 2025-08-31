@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import sqlite3, random, json, csv, sys
@@ -9,7 +9,14 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
-base_config = load("setahaya")
+ALLOWED_MUNICIPALITIES = {"setagaya"}
+
+def validate_municipality(name: str) -> str:
+    if name not in ALLOWED_MUNICIPALITIES:
+        raise HTTPException(status_code=400, detail="Unsupported municipality")
+    return name
+
+base_config = load("setagaya")
 
 app = FastAPI()
 
@@ -28,7 +35,8 @@ class EvaledRequest(BaseModel):
     evaled_ids: List[int]  # POSTデータ受け用
 
 @app.post("/api/qa/next")
-def get_next_qa(data: EvaledRequest, municipality: str):
+def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
+    municipality = validate_municipality(municipality)
     config = load(municipality)
     non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, config)
     if not non_evaled_ids:
@@ -38,9 +46,10 @@ def get_next_qa(data: EvaledRequest, municipality: str):
     return format_QA(qa, config)
 
 @app.post("/api/qa/meta")
-def get_qa_meta(data: EvaledRequest, municipality: str):
+def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     if not data.evaled_ids:
         return []
+    municipality = validate_municipality(municipality)
     config = load(municipality)
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
