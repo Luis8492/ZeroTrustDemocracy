@@ -1,1 +1,2 @@
 pii_dir: PIIs
+db_path: db/default.db

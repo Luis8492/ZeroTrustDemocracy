@@ -62,6 +62,23 @@
 
 ## 📦 ローカル開発
 
+### データベースの準備
+
+アプリケーションは議事録データを SQLite データベースに保存します。サンプルデータベースは次のコマンドで生成できます。
+
+```bash
+python scripts/migrate_to_setagaya.py
+```
+
+`migrate_to_setagaya.py` は `db/default.db` にサンプルデータを作成し、`db/setagaya.db` にコピーします。
+
+使用するデータベースファイルは `config/default.yml` の `db_path` で指定します。
+
+```yaml
+pii_dir: PIIs
+db_path: db/default.db
+```
+
 ### 初回セットアップ
 
 ```bash
