@@ -43,16 +43,17 @@ def get_context(municipality: str):
     municipality: str
         Municipality name provided via query or body.
     """
+    root = Path(__file__).resolve().parent.parent.parent
     config = load_config(municipality)
     anonymizer = Anonymizer(pii_dir=config["pii_dir"])
-    db_path = config.get("db_path", f"db/{municipality}.db")
+    db_path = root / config.get("db_path", f"db/{municipality}.db")
     municipality_id = config.get("municipality_id")
     parser = None
     try:
         parser = importlib.import_module(f"parsers.{municipality}")
     except ModuleNotFoundError:
         pass
-    return anonymizer, db_path, municipality_id, parser
+    return anonymizer, str(db_path), municipality_id, parser
 
 
 @qa_router.post("/next")
