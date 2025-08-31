@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import sqlite3, random, json, csv, sys
@@ -9,7 +9,7 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
-base_config = load("setahaya")
+base_config = load("setagata")
 
 app = FastAPI()
 
@@ -29,7 +29,10 @@ class EvaledRequest(BaseModel):
 
 @app.post("/api/qa/next")
 def get_next_qa(data: EvaledRequest, municipality: str):
-    config = load(municipality)
+    try:
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, config)
     if not non_evaled_ids:
         return {"message": "全て評価済みです"}
@@ -41,7 +44,10 @@ def get_next_qa(data: EvaledRequest, municipality: str):
 def get_qa_meta(data: EvaledRequest, municipality: str):
     if not data.evaled_ids:
         return []
-    config = load(municipality)
+    try:
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""

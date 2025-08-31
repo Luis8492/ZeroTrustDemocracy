@@ -1,8 +1,13 @@
 from pathlib import Path
 import yaml
 
+base_dir = Path(__file__).resolve().parent
+_ALLOWED_MUNICIPALITIES = {p.stem for p in (base_dir / 'config').glob('*.yaml')}
+
+
 def load(municipality: str):
-    base_dir = Path(__file__).resolve().parent
+    if municipality not in _ALLOWED_MUNICIPALITIES:
+        raise ValueError(f"Unsupported municipality: {municipality}")
     config_path = base_dir / 'config' / f'{municipality}.yaml'
     with open(config_path, 'r', encoding='utf-8') as f:
         data = yaml.safe_load(f)
