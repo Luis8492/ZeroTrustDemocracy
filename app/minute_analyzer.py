@@ -4,11 +4,12 @@ import json
 import sys
 from pathlib import Path
 
+# Ensure repository root is on the Python path before importing modules outside `app`
+sys.path.append(str(Path(__file__).resolve().parent.parent))
+
 import minute_converter
 from municipal_modules.parsers.base_minute_parser import BaseMinuteParser
 from municipal_modules.parsers.setagaya_parser import SetagayaParser
-
-sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 from utils.logger import get_logger
 
