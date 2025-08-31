@@ -30,7 +30,7 @@ def analyze_unprocessed_minutes(
         try:
             minute_json = analyze_minute(file_path, parser)
             save_minute_to_db(minute_json, conn)
-            update_analyzed_status(conn, cur)
+            update_analyzed_status(conn, cur, minute_id)
         except Exception as e:
             print(f"[ERROR] 分析失敗（ID={minute_id}）: {e}")
 
@@ -53,7 +53,7 @@ def get_parser(municipality: str) -> BaseMinuteParser:
         return SetagayaParser()
     raise ValueError(f"Unsupported municipality: {municipality}")
 
-def update_analyzed_status(conn,cur):
+def update_analyzed_status(conn,cur,minute_id):
     cur.execute(
         "UPDATE minutes SET analyzed = 1 WHERE id = ?",
         (minute_id,)
