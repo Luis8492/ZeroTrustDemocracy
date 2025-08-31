@@ -10,6 +10,9 @@ from parsers.setagaya_parser import SetagayaParser
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def analyze_unprocessed_minutes(
@@ -21,18 +24,20 @@ def analyze_unprocessed_minutes(
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     rows = query_not_analyzed_data(cur)
-    print(f"[INFO] 未分析のファイル数: {len(rows)}")
+    logger.info(f"[INFO] 未分析のファイル数: {len(rows)}")
     for minute_id, file_name in rows:
         file_path = "raw_minutes/" + file_name
         if not os.path.exists(file_path):
-            print(f"[WARN] ファイルが見つかりません: {file_path}")
+            logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
             continue
         try:
             minute_json = analyze_minute(file_path, parser)
             save_minute_to_db(minute_json, conn)
             update_analyzed_status(conn, cur, minute_id)
         except Exception as e:
-            print(f"[ERROR] 分析失敗（ID={minute_id}）: {e}")
+            message = f"[ERROR] 分析失敗（ID={minute_id}）: {e}"
+            logger.error(message)
+            print(message)
 
     conn.close()
 
@@ -105,10 +110,14 @@ def extract_QAs(minute):
                     state = new_state
                 else:
                     transition_log = build_state_transition_log(topic_body, speech_index+1)
-                    print(f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}")
-                    print(
+                    message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
+                    logger.error(message)
+                    print(message)
+                    message = (
                         f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
                     )
+                    logger.error(message)
+                    print(message)
                     raise RuntimeError("Unknown state transition.("+state+">?)["+transition_log+"]")
             elif state[:2] == "QA":
                 if topic_body[speech_index]["mark"] != "○":
@@ -150,12 +159,14 @@ def extract_QAs(minute):
                                         break
                                 else:
                                     transition_log = build_state_transition_log(topic_body, i+1)
-                                    print(
-                                        f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
-                                    )
-                                    print(
+                                    message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
+                                    logger.error(message)
+                                    print(message)
+                                    message = (
                                         f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
                                     )
+                                    logger.error(message)
+                                    print(message)
                                     raise RuntimeError("Unknown state transition.("+state+">?)["+transition_log+"]")
                             else:
                                 break
