@@ -7,7 +7,7 @@ from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from config_loader import load
+from config_loader import load, load_global
 
 ALLOWED_MUNICIPALITIES = {"setagaya"}
 
@@ -23,12 +23,12 @@ def load_party_table(path: str) -> Dict[str, str]:
         return {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
 
-base_config = load("setagaya")
+global_config = load_global()
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=base_config.get("allow_origins", []),
+    allow_origins=global_config.get("allow_origins", []),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
