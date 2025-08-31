@@ -116,14 +116,15 @@ class SetagayaParser(BaseMinuteParser):
                         state = new_state
                     else:
                         transition_log = self._build_state_transition_log(topic_body, speech_index + 1)
+                        message = f"[ERROR] 状態遷移エラー"
+                        logger.error(message)
                         message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
                         logger.error(message)
-                        print(message)
                         message = (
                             f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
                         )
                         logger.error(message)
-                        print(message)
+                        logger.error("")
                         raise RuntimeError(
                             "Unknown state transition.(" + state + ">?)[" + transition_log + "]"
                         )
@@ -169,12 +170,11 @@ class SetagayaParser(BaseMinuteParser):
                                         transition_log = self._build_state_transition_log(topic_body, i + 1)
                                         message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
                                         logger.error(message)
-                                        print(message)
                                         message = (
                                             f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
                                         )
                                         logger.error(message)
-                                        print(message)
+                                        logger.error("")
                                         raise RuntimeError(
                                             "Unknown state transition.(" + state + ">?)[" + transition_log + "]"
                                         )
