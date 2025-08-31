@@ -3,5 +3,3 @@ pii_files:
   - app/PIIs/partyNames.txt
 party_table_path: app/name-party-table.csv
 fetch_url: https://kugi.city.setagaya.tokyo.jp/voices/
-allow_origins:
-  - http://localhost:8001
