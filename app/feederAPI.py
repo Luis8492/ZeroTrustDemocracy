@@ -1,4 +1,4 @@
-from fastapi import FastAPI, Query
+from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any
 import sqlite3, random, json, csv, sys
@@ -9,36 +9,55 @@ from fastapi.middleware.cors import CORSMiddleware
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
+ALLOWED_MUNICIPALITIES = {"setagaya"}
+
+def validate_municipality(name: str) -> str:
+    if name not in ALLOWED_MUNICIPALITIES:
+        raise HTTPException(status_code=400, detail="Unsupported municipality")
+    return name
+
+base_config = load("setagaya")
+
 app = FastAPI()
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:8001"],  # フロントエンドのポートを指定
+    allow_origins=base_config.get("allow_origins", []),
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-config = load("setagata")
 with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
     PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
+
 class EvaledRequest(BaseModel):
-    evaled_ids: List[int] # POSTデータ受け用
+    evaled_ids: List[int]  # POSTデータ受け用
 
 @app.post("/api/qa/next")
-def get_next_qa(data: EvaledRequest):
-    non_evaled_ids = extract_non_evaled_QA(data.evaled_ids)
+def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
+    try:
+        municipality = validate_municipality(municipality)
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, config)
     if not non_evaled_ids:
         return {"message": "全て評価済みです"}
     target_id = random.choice(non_evaled_ids)
-    qa = get_QA_by_id(target_id)
-    return format_QA(qa)
+    qa = get_QA_by_id(target_id, config)
+    return format_QA(qa, config)
 
 @app.post("/api/qa/meta")
-def get_qa_meta(data: EvaledRequest):
+def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     if not data.evaled_ids:
         return []
+    try:
+        municipality = validate_municipality(municipality)
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
@@ -65,7 +84,7 @@ def get_qa_meta(data: EvaledRequest):
     conn.close()
     return metas
 
-def extract_non_evaled_QA(evaled_ids: List[int]) -> List[int]:
+def extract_non_evaled_QA(evaled_ids: List[int], config: Dict[str, Any]) -> List[int]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     if evaled_ids:
@@ -77,7 +96,7 @@ def extract_non_evaled_QA(evaled_ids: List[int]) -> List[int]:
     conn.close()
     return ids
 
-def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
+def get_QA_by_id(qa_id: int, config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     cur.execute("SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
@@ -90,7 +109,7 @@ def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
         "QA": row[3]
     }
 
-def format_QA(entry: Dict[str, Any]) -> Dict[str, Any]:
+def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     cur.execute("SELECT id,date,name FROM meetings WHERE file_name=?", (entry.get("file_name"),))
