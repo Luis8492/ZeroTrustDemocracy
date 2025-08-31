@@ -1,3 +1,5 @@
+"""Base classes for downloading municipal meeting minutes."""
+
 import os
 import sqlite3
 from abc import ABC, abstractmethod
@@ -7,6 +9,8 @@ from config_loader import load
 
 
 class BaseMinuteFetcher(ABC):
+    """Common workflow for downloading raw meeting minutes."""
+
     def __init__(self, playwright, municipality: str):
         self.playwright = playwright
         self.municipality = municipality

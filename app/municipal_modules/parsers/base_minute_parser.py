@@ -1,3 +1,5 @@
+"""Base classes for parsing municipal meeting minutes."""
+
 from __future__ import annotations
 
 from abc import ABC, abstractmethod
