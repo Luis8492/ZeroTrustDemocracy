@@ -1,6 +1,16 @@
 import json
 import sqlite3
 from pathlib import Path
+import sys
+
+# Ensure the repository root is on ``sys.path`` so that this script can be
+# executed directly (e.g. ``python app/remove_non_question_qas.py``) without
+# ``ModuleNotFoundError``. When run as a standalone script the ``app`` directory
+# is placed on the module search path, but the project root (which contains the
+# ``utils`` package) is not. Prepending the root fixes the import.
+repo_root = Path(__file__).resolve().parents[1]
+if str(repo_root) not in sys.path:
+    sys.path.insert(0, str(repo_root))
 
 from utils.logger import get_logger
 
