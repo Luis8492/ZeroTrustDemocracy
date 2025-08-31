@@ -6,7 +6,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
 
-def init_db(municipality: str = "setagata"):
+def init_db(municipality: str = "setagaya"):
     config = load(municipality)
     db_path = Path(config["db_path"])
     db_path.parent.mkdir(parents=True, exist_ok=True)
@@ -48,5 +48,5 @@ CREATE TABLE IF NOT EXISTS questions (
 
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "setagata"
+    target = sys.argv[1] if len(sys.argv) > 1 else "setagaya"
     init_db(target)

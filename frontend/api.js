@@ -1,5 +1,5 @@
-export async function fetchNextQA(evaledIds = []) {
-  const res = await fetch("http://localhost:8000/api/qa/next", {
+export async function fetchNextQA(evaledIds = [], municipality) {
+  const res = await fetch(`http://localhost:8000/api/qa/next?municipality=${municipality}`, {
     method: "POST",
     headers: {
       "Content-Type": "application/json"
@@ -15,8 +15,8 @@ export async function fetchNextQA(evaledIds = []) {
   return data;
 }
 
-export async function fetchMetaData(evaledIds = []) {
-  const res = await fetch("http://localhost:8000/api/qa/meta",{
+export async function fetchMetaData(evaledIds = [], municipality) {
+  const res = await fetch(`http://localhost:8000/api/qa/meta?municipality=${municipality}`,{
     method: "POST",
     headers: {
       "Content-Type": "application/json"

@@ -6,7 +6,7 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 from config_loader import load
 
-def run(playwright: Playwright, municipality: str = "setagata") -> None:
+def run(playwright: Playwright, municipality: str = "setagaya") -> None:
     config = load(municipality)
     prepare_os_dirctories(config)
     conn = sqlite3.connect(config["db_path"])

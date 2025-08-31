@@ -1,5 +1,7 @@
-import { fetchNextQA,fetchMetaData } from './api.js';
-import { listEvaluatedIDs, saveEvaluation} from './db.js'; // IndexedDB 側から取得
+import { fetchNextQA, fetchMetaData } from './api.js';
+import { listEvaluatedIDs, saveEvaluation } from './db.js'; // IndexedDB 側から取得
+
+const MUNICIPALITY = "setagaya";
 
 var qa_id;
 
@@ -21,7 +23,7 @@ function formatSpeech(QA){
 async function fetchQuestion(){
   // 既に評価済みのQAのIDをIndexedDBから取得
   const evaledIds = await listEvaluatedIDs();
-  const qa = await fetchNextQA(evaledIds);
+  const qa = await fetchNextQA(evaledIds, MUNICIPALITY);
   if (qa.QA) {
     qa_id = qa.id;
     document.querySelector("#meetingName").innerText = qa.committee_name;
@@ -58,7 +60,7 @@ document.addEventListener("DOMContentLoaded", fetchQuestion);
 
 window.recordEval = recordEval;
 window.fetchQuestion = fetchQuestion;
-window.fetchNextQA = fetchNextQA;
+window.fetchNextQA = (ids) => fetchNextQA(ids, MUNICIPALITY);
 window.listEvaluatedIDs = listEvaluatedIDs;
-window.fetchMetaData = fetchMetaData;
+window.fetchMetaData = (ids) => fetchMetaData(ids, MUNICIPALITY);
 window.scrollToTop = scrollToTop;
