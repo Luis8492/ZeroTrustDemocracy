@@ -173,14 +173,6 @@ def save_meta_info(minute, conn):
     date = minute["meeting"]["date"]
     name = minute["meeting"]["name"]
     cur = conn.cursor()
-    cur.execute("""
-CREATE TABLE IF NOT EXISTS meetings (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name TEXT,
-    date TEXT,
-    name TEXT
-)
-""")
     cur.execute(
         "INSERT OR IGNORE INTO meetings (file_name, date, name) VALUES (?, ?, ?)",
         (file_name,date,name)
@@ -190,15 +182,6 @@ CREATE TABLE IF NOT EXISTS meetings (
 def save_QAs(minute,conn):
     file_name = minute["file_name"]
     cur = conn.cursor()
-    cur.execute("""
-CREATE TABLE IF NOT EXISTS questions (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    file_name TEXT,
-    topic_intro TEXT,
-    QA TEXT,
-    questioner TEXT
-)
-""")
     for topic in minute["QAs"]:
         intro=""
         for QA in topic:

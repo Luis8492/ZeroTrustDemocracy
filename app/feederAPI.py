@@ -19,7 +19,7 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-DB_PATH = load("setagata")["db_path"]
+config = load("setagata")
 with open(Path(__file__).with_name("name-party-table.csv"), encoding="utf-8") as f:
     PARTY_TABLE = {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
 
@@ -39,7 +39,7 @@ def get_next_qa(data: EvaledRequest):
 def get_qa_meta(data: EvaledRequest):
     if not data.evaled_ids:
         return []
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
         SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date
@@ -66,7 +66,7 @@ def get_qa_meta(data: EvaledRequest):
     return metas
 
 def extract_non_evaled_QA(evaled_ids: List[int]) -> List[int]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     if evaled_ids:
         q = f"SELECT id FROM questions WHERE id NOT IN ({','.join(['?'] * len(evaled_ids))})"
@@ -78,7 +78,7 @@ def extract_non_evaled_QA(evaled_ids: List[int]) -> List[int]:
     return ids
 
 def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     cur.execute("SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
     row = cur.fetchone()
@@ -91,7 +91,7 @@ def get_QA_by_id(qa_id: int) -> Dict[str, Any]:
     }
 
 def format_QA(entry: Dict[str, Any]) -> Dict[str, Any]:
-    conn = sqlite3.connect(DB_PATH)
+    conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     cur.execute("SELECT id,date,name FROM meetings WHERE file_name=?", (entry.get("file_name"),))
     row = cur.fetchone()
