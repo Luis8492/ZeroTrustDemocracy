@@ -7,7 +7,7 @@ import importlib
 from pathlib import Path
 from typing import List, Dict, Any, Optional
 
-from fastapi import APIRouter, Query
+from fastapi import APIRouter, Query, HTTPException
 from pydantic import BaseModel
 
 from anonymizer import Anonymizer
@@ -149,6 +149,8 @@ def get_QA_by_id(
         )
     row = cur.fetchone()
     conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="QA not found")
     return {
         "id": qa_id,
         "file_name": row[1],
@@ -174,6 +176,8 @@ def format_QA(
         )
     row = cur.fetchone()
     conn.close()
+    if row is None:
+        raise HTTPException(status_code=404, detail="QA not found")
     return {
         "id": entry.get("id"),
         "committee_date": row[1],
