@@ -1,5 +1,0 @@
-db_path: db/setagata.db
-pii_dir: app/PIIs
-fetch_url: https://kugi.city.setagaya.tokyo.jp/voices/
-allow_origins:
-  - http://localhost:8001
