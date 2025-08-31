@@ -1,3 +1,5 @@
+"""Fetcher implementation for Setagaya municipal meeting minutes."""
+
 import html
 import re
 import urllib
