@@ -8,8 +8,8 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 import minute_converter
-from municipal_modules.parsers.base_minute_parser import BaseMinuteParser
-from municipal_modules.parsers.setagaya_parser import SetagayaParser
+from municipal_modules.base.base_minute_parser import BaseMinuteParser
+from municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
 from config_loader import load
 from utils.logger import get_logger
 

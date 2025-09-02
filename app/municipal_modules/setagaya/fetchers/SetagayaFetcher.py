@@ -7,7 +7,7 @@ import time
 
 from playwright.sync_api import Playwright
 
-from .BaseMinuteFetcher import BaseMinuteFetcher
+from municipal_modules.base.BaseMinuteFetcher import BaseMinuteFetcher
 from utils.logger import get_logger
 
 
