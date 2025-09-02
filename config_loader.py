@@ -2,8 +2,13 @@ from pathlib import Path
 import yaml
 
 base_dir = Path(__file__).resolve().parent
-config_dir = base_dir / 'app' / 'municipal_modules' / 'config'
-_ALLOWED_MUNICIPALITIES = {p.stem for p in config_dir.glob('*.yaml')}
+municipal_dir = base_dir / 'app' / 'municipal_modules'
+# Municipalities correspond to subdirectories under `app/municipal_modules`
+_ALLOWED_MUNICIPALITIES = {
+    d.name
+    for d in municipal_dir.iterdir()
+    if (d / 'config' / f'{d.name}.yaml').exists()
+}
 
 
 def load_global() -> dict:
@@ -19,7 +24,7 @@ def load_global() -> dict:
 def load(municipality: str):
     if municipality not in _ALLOWED_MUNICIPALITIES:
         raise ValueError(f"Unsupported municipality: {municipality}")
-    config_path = config_dir / f'{municipality}.yaml'
+    config_path = municipal_dir / municipality / 'config' / f'{municipality}.yaml'
     with open(config_path, 'r', encoding='utf-8') as f:
         data = yaml.safe_load(f)
     # resolve paths relative to repo root

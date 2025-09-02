@@ -9,9 +9,9 @@
 - `minute_analyzer.py` - 解析用スクリプト
 - `anonymizer.py` - `PIIs/` 内のリストを用いて個人情報を匿名化
 - `remove_non_question_qas.py` - 質問になっていないQAを除外
-- `municipal_modules/` - 自治体ごとの実装
-  - `parsers/` - 議事録パーサーの実装
-  - `fetchers/` - 議事録取得用フェッチャー
+- `municipal_modules/` - 自治体ごとの実装および共有基底クラス
+  - `<municipality>/` - 各自治体の `config/`, `fetchers/`, `parsers/`
+  - `base/` - 共通の基底クラス
 - `PIIs/` - 個人情報リスト
 - `raw_minutes/` - サンプル議事録テキスト
 - `name-party-table.csv` - 氏名と所属政党の対応表
