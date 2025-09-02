@@ -1,7 +1,8 @@
 import argparse
 from playwright.sync_api import sync_playwright
 
-from app.municipal_modules.fetchers import SetagayaFetcher
+# Fetchers are organized under `app/municipal_modules/<municipality>/fetchers`
+from app.municipal_modules.setagaya.fetchers import SetagayaFetcher
 
 FETCHERS = {
     "setagaya": SetagayaFetcher,

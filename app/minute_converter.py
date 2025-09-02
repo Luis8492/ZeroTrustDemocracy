@@ -3,7 +3,7 @@ from __future__ import annotations
 import json
 from typing import Dict, Any
 
-from municipal_modules.parsers.base_minute_parser import BaseMinuteParser
+from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 
 
 def convert_minute_txt_to_json(text: str, parser: BaseMinuteParser) -> Dict[str, Any]:

@@ -63,10 +63,9 @@
 ## 📁 ディレクトリ構成
 
 - `app/` - バックエンドスクリプトと解析ツール
-  - `municipal_modules/` - 自治体ごとのパーサーやフェッチャー
-    - `parsers/` - 議事録パーサーの実装
-    - `fetchers/` - 議事録データをダウンロードするモジュール
-- `app/municipal_modules/config/` - 議事録取得や解析の設定ファイル
+  - `municipal_modules/` - 自治体ごとの実装
+    - `<municipality>/` - 各自治体のモジュール (`config/`, `fetchers/`, `parsers/`)
+    - `base/` - 共有の基底クラス
 - `frontend/` - クライアントサイドのHTMLとJavaScript
 - `scripts/` - メンテナンス用の補助スクリプト
 - `db/` - SQLiteデータベースを格納するディレクトリ
