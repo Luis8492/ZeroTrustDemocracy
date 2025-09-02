@@ -14,7 +14,7 @@
   - `base/` - 共通の基底クラス
 - `PIIs/` - 個人情報リスト
 - `raw_minutes/` - サンプル議事録テキスト
-- `name-party-table.csv` - 氏名と所属政党の対応表
+- `municipal_modules/<municipality>/config/name-party-table.csv` - 氏名と所属政党の対応表
 
 ## GET /api/qa/next へのレスポンス例
 ```json
