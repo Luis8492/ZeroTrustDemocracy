@@ -6,7 +6,7 @@ import re
 import json
 from typing import Any, Dict, List
 
-from .base_minute_parser import BaseMinuteParser
+from municipal_modules.base.base_minute_parser import BaseMinuteParser
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
