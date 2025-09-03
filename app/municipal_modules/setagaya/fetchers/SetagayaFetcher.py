@@ -15,6 +15,10 @@ logger = get_logger(__name__)
 
 
 class SetagayaFetcher(BaseMinuteFetcher):
+    """Fetcher implementation for Setagaya municipal meeting minutes."""
+
+    FETCHER_NAME = "SetagayaCommitteeFetcher"
+
     def set_search_setting_and_click_search(self, page) -> None:
         frame = page.frame(name="TOP")
         if not frame:
@@ -50,7 +54,7 @@ class SetagayaFetcher(BaseMinuteFetcher):
             self._set_download_settings(detail_page)
             file_name = self._download_minute(detail_page)
             self.mark_as_downloaded(
-                conn, url, file_name, fetcher_name="SetagayaCommitteeFetcher"
+                conn, url, file_name, fetcher_name=self.FETCHER_NAME
             )
             logger.info(f"[DONE] Downloaded: {url} → {file_name}")
             detail_page.close()
@@ -66,6 +70,7 @@ class SetagayaFetcher(BaseMinuteFetcher):
             ).click()
         download = download_info.value
         page_url = detail_page.url
-        file_name = "raw_minutes/" + re.sub(r"\W+", "_", page_url[-14:]) + ".txt"
+        sanitized = re.sub(r"\W+", "_", page_url[-14:])
+        file_name = f"raw_minutes/{self.FETCHER_NAME}_{sanitized}.txt"
         download.save_as(file_name)
         return file_name

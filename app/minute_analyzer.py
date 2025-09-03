@@ -10,6 +10,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 import minute_converter
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
+from app.municipal_modules.setagaya.fetchers import SetagayaFetcher
 from config_loader import load
 from utils.logger import get_logger
 
@@ -19,7 +20,7 @@ logger = get_logger(__name__)
 def analyze_unprocessed_minutes(
     municipality: str = "setagaya",
     parser: BaseMinuteParser | None = None,
-    fetcher_name: str = "SetagayaCommitteeFetcher",
+    fetcher_name: str = SetagayaFetcher.FETCHER_NAME,
 ):
     if parser is None:
         parser = get_parser(municipality)
@@ -112,4 +113,4 @@ def save_QAs(minute,conn):
                 )
     conn.commit()
 
-analyze_unprocessed_minutes(fetcher_name="SetagayaCommitteeFetcher")
+analyze_unprocessed_minutes(fetcher_name=SetagayaFetcher.FETCHER_NAME)
