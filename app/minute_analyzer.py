@@ -17,14 +17,16 @@ logger = get_logger(__name__)
 
 
 def analyze_unprocessed_minutes(
-    municipality: str = "setagaya", parser: BaseMinuteParser | None = None
+    municipality: str = "setagaya",
+    parser: BaseMinuteParser | None = None,
+    fetcher_name: str = "SetagayaCommitteeFetcher",
 ):
     if parser is None:
         parser = get_parser(municipality)
     config = load(municipality)
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
-    rows = query_not_analyzed_data(cur)
+    rows = query_not_analyzed_data(cur, fetcher_name)
     logger.info(f"[INFO] 未分析のファイル数: {len(rows)}")
     for minute_id, file_name in rows:
         file_path = "raw_minutes/" + file_name
@@ -42,8 +44,11 @@ def analyze_unprocessed_minutes(
 
     conn.close()
 
-def query_not_analyzed_data(cur):
-    cur.execute("SELECT id, file_name FROM minutes WHERE analyzed = 0")
+def query_not_analyzed_data(cur, fetcher_name: str):
+    cur.execute(
+        "SELECT id, file_name FROM minutes WHERE fetcher = ? AND analyzed = 0",
+        (fetcher_name,),
+    )
     return cur.fetchall()
 
 def analyze_minute(file_path: str, parser: BaseMinuteParser) -> dict:
@@ -107,4 +112,4 @@ def save_QAs(minute,conn):
                 )
     conn.commit()
 
-analyze_unprocessed_minutes()
+analyze_unprocessed_minutes(fetcher_name="SetagayaCommitteeFetcher")
