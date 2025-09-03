@@ -81,12 +81,12 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
                 page.goto(url)
                 content = page.content()
                 sanitized = re.sub(r"\W+", "_", url[-50:])
-                file_name = f"raw_minutes/{self.FETCHER_NAME}_{sanitized}.html"
-                with open(file_name, "w", encoding="utf-8") as f:
+                file_path = self.raw_minutes_dir / f"{self.FETCHER_NAME}_{sanitized}.html"
+                with open(file_path, "w", encoding="utf-8") as f:
                     f.write(content)
-                self.mark_as_downloaded(conn, url, file_name, fetcher_name=self.FETCHER_NAME)
-                logger.info(f"[DONE] Downloaded: {url} → {file_name}")
-                return {"url": url, "path": file_name}
+                self.mark_as_downloaded(conn, url, str(file_path), fetcher_name=self.FETCHER_NAME)
+                logger.info(f"[DONE] Downloaded: {url} → {file_path}")
+                return {"url": url, "path": str(file_path)}
             except Exception as e:
                 logger.error(f"Error downloading {url} (attempt {attempt+1}/3): {e}")
                 if attempt == 2:

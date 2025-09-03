@@ -1,4 +1,4 @@
-../bin/python3 fetch.py --municipality setagaya;
+../bin/python3 app/fetch.py --municipality setagaya;
 
 cd app;
 ../../bin/python3 minute_analyzer.py;

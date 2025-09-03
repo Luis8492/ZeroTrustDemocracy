@@ -72,6 +72,6 @@ class SetagayaFetcher(BaseMinuteFetcher):
         download = download_info.value
         page_url = detail_page.url
         sanitized = re.sub(r"\W+", "_", page_url[-14:])
-        file_name = f"raw_minutes/{self.FETCHER_NAME}_{sanitized}.txt"
-        download.save_as(file_name)
-        return file_name
+        file_path = self.raw_minutes_dir / f"{self.FETCHER_NAME}_{sanitized}.txt"
+        download.save_as(str(file_path))
+        return str(file_path)
