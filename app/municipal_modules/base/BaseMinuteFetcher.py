@@ -1,6 +1,5 @@
 """Base classes for downloading municipal meeting minutes."""
 
-import os
 import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
@@ -15,6 +14,7 @@ class BaseMinuteFetcher(ABC):
         self.playwright = playwright
         self.municipality = municipality
         self.config = load(municipality)
+        self.raw_minutes_dir = Path(__file__).resolve().parents[2] / "raw_minutes"
 
     def run(self) -> None:
         self._prepare_os_directories()
@@ -31,7 +31,7 @@ class BaseMinuteFetcher(ABC):
 
     def _prepare_os_directories(self) -> None:
         Path(self.config["db_path"]).parent.mkdir(parents=True, exist_ok=True)
-        os.makedirs("raw_minutes", exist_ok=True)
+        self.raw_minutes_dir.mkdir(parents=True, exist_ok=True)
 
     def is_url_downloaded(self, conn: sqlite3.Connection, url: str) -> bool:
         cur = conn.cursor()
