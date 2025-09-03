@@ -1,6 +1,8 @@
 """Fetcher implementation for Setagaya regular session meeting minutes."""
 
 import re
+import urllib.parse
+from typing import Iterable
 
 from app.municipal_modules.base import BaseMinuteFetcher
 from utils.logger import get_logger
@@ -27,10 +29,45 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
             re.compile(r"https://www\.city\.setagaya\.lg\.jp/gikai/teirei/.*")
         )
 
-    def extract_minutes_urls(self, page):
-        """Extract minute page URLs from the search results."""
+    def extract_minutes_urls(self, page) -> list[str]:
+        """Collect representative and general question URLs from session pages."""
+        QUESTION_LABELS: Iterable[str] = ("代表質問", "一般質問")
+
         self._navigate_to_results_page(page)
-        raise NotImplementedError("URL extraction logic is not implemented.")
+
+        # The results page lists each regular/extraordinary session under
+        # ``ul.idx_menu``. For every session we open the page and collect the
+        # links for the specified question labels.
+        session_links = page.locator("ul.idx_menu li a").all()
+        collected: list[str] = []
+        seen: set[str] = set()
+
+        for link in session_links:
+            href = link.get_attribute("href")
+            if not href:
+                continue
+            session_url = urllib.parse.urljoin(page.url, href)
+
+            session_page = page.context.new_page()
+            try:
+                session_page.goto(session_url)
+
+                for label in QUESTION_LABELS:
+                    locator = session_page.get_by_role("link", name=label)
+                    if locator.count() == 0:
+                        continue
+                    detail_href = locator.first.get_attribute("href")
+                    if not detail_href:
+                        continue
+                    detail_url = urllib.parse.urljoin(session_page.url, detail_href)
+                    if detail_url in seen:
+                        continue
+                    seen.add(detail_url)
+                    collected.append(detail_url)
+            finally:
+                session_page.close()
+
+        return collected
 
     def download_new_minutes(self, conn, context, url):
         """Download new minute files and register them in the database."""
