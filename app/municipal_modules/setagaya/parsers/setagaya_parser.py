@@ -181,7 +181,7 @@ class SetagayaParser(BaseMinuteParser):
                                 else:
                                     break
                             else:
-                                QA_sequence.append(topic_body[speech_index])
+                                QA_sequence.append(topic_body[i])
                 elif state == "party_comments":
                     if topic_body[speech_index]["mark"] == "◆":
                         QAs.append(QA_sequence)
