@@ -18,6 +18,7 @@ CREATE TABLE IF NOT EXISTS minutes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     url TEXT UNIQUE,
     file_name TEXT,
+    fetcher TEXT NOT NULL DEFAULT "SetagayaCommitteeFetcher",
     analyzed INTEGER
 )
 """
