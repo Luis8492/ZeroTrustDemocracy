@@ -34,10 +34,11 @@ python scripts/add_fetcher_column.py [municipality]
 
 ## remove_non_question_qas.py
 
-`db/minutes.db` から質問になっていない QA を削除するスクリプトです。
+設定ファイルに基づいて SQLite データベースから質問になっていない QA を削除します。
 
 ### 使い方
 ```bash
-python scripts/remove_non_question_qas.py
+python scripts/remove_non_question_qas.py [municipality]
 ```
+`municipality` を省略した場合は `setagaya` が使用されます。
 実行すると削除した件数がログに表示されます。
