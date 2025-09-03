@@ -89,3 +89,14 @@ cd frontend
 python3 -m http.server 8001
 # => アクセス: http://localhost:8001/index.html
 ```
+
+### データベース初期化
+
+議事録を取得する前に、各自治体の SQLite データベースを初期化する必要があります。
+
+```bash
+# 例: 世田谷区 (setagaya2) の DB を作成
+python scripts/init_db.py setagaya2
+```
+
+`scripts/init_db.py` は `minutes`, `meetings`, `questions` などのテーブルを生成します。
