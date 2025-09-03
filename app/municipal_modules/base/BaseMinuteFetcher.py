@@ -39,11 +39,23 @@ class BaseMinuteFetcher(ABC):
         cur.execute("SELECT 1 FROM minutes WHERE url = ?", (url,))
         return cur.fetchone() is not None
 
-    def mark_as_downloaded(self, conn: sqlite3.Connection, url: str, file_path: str) -> None:
+    def mark_as_downloaded(
+        self,
+        conn: sqlite3.Connection,
+        url: str,
+        file_path: str,
+        fetcher_name: str,
+    ) -> None:
         cur = conn.cursor()
         cur.execute(
-            "INSERT OR IGNORE INTO minutes (url, file_name, analyzed) VALUES (?, ?, 0)",
-            (url, file_path.split('/')[-1]),
+            """
+INSERT INTO minutes (url, file_name, fetcher, analyzed)
+VALUES (?, ?, ?, 0)
+ON CONFLICT(url) DO UPDATE SET
+    file_name=excluded.file_name,
+    fetcher=excluded.fetcher
+""",
+            (url, Path(file_path).name, fetcher_name),
         )
         conn.commit()
 
