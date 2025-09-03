@@ -150,20 +150,20 @@ class SetagayaParser(BaseMinuteParser):
                                         QAs.append([topic_body[i]])
                                         QAs.append([topic_body[i + 1]])
                                         QA_sequence = []
-                                        speech_index = i + 1
+                                        speech_index = i + 1 # これなに?
                                         state = new_state
                                         break
                                     elif topic_body[i + 1]["mark"] == "◎":
                                         if topic_body[i]["name"] == state[2:]:
                                             QA_sequence.append(topic_body[i])
                                             QA_sequence.append(topic_body[i + 1])
-                                            speech_index = i + 1
+                                            speech_index = i + 1 # これなに?
                                             break
                                         else:
                                             new_state = "QA" + topic_body[i]["name"]
                                             QAs.append(QA_sequence)
                                             QA_sequence = [topic_body[i], topic_body[i + 1]]
-                                            speech_index = i + 1
+                                            speech_index = i + 1 # これなに?
                                             state = new_state
                                             break
                                     else:
