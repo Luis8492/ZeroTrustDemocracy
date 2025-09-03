@@ -3,9 +3,11 @@ from playwright.sync_api import sync_playwright
 
 # Fetchers are organized under `app/municipal_modules/<municipality>/fetchers`
 from app.municipal_modules.setagaya.fetchers import SetagayaFetcher
+from app.municipal_modules.setagaya2.fetchers import Setagaya2Fetcher
 
 FETCHERS = {
     "setagaya": SetagayaFetcher,
+    "setagaya2":Setagaya2Fetcher
 }
 
 
