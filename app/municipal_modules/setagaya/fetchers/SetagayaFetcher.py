@@ -49,7 +49,9 @@ class SetagayaFetcher(BaseMinuteFetcher):
             detail_page.goto(url)
             self._set_download_settings(detail_page)
             file_name = self._download_minute(detail_page)
-            self.mark_as_downloaded(conn, url, file_name)
+            self.mark_as_downloaded(
+                conn, url, file_name, fetcher_name="SetagayaCommitteeFetcher"
+            )
             logger.info(f"[DONE] Downloaded: {url} → {file_name}")
             detail_page.close()
 
