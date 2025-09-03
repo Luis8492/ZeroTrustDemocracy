@@ -71,4 +71,27 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
 
     def download_new_minutes(self, conn, context, url):
         """Download new minute files and register them in the database."""
-        raise NotImplementedError("Download logic is not implemented.")
+        if self.is_url_downloaded(conn, url):
+            logger.info(f"[SKIP] Already downloaded: {url}")
+            return None
+        for attempt in range(3):
+            page = None
+            try:
+                page = context.new_page()
+                page.goto(url)
+                content = page.content()
+                sanitized = re.sub(r"\W+", "_", url[-50:])
+                file_name = f"raw_minutes/{self.FETCHER_NAME}_{sanitized}.html"
+                with open(file_name, "w", encoding="utf-8") as f:
+                    f.write(content)
+                self.mark_as_downloaded(conn, url, file_name, fetcher_name=self.FETCHER_NAME)
+                logger.info(f"[DONE] Downloaded: {url} → {file_name}")
+                return {"url": url, "path": file_name}
+            except Exception as e:
+                logger.error(f"Error downloading {url} (attempt {attempt+1}/3): {e}")
+                if attempt == 2:
+                    raise
+            finally:
+                if page:
+                    page.close()
+        return None
