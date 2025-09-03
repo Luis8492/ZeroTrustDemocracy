@@ -22,6 +22,16 @@ python scripts/init_db.py [municipality]
 ```
 `municipality` を省略した場合は `setagaya` が使用されます。
 
+## add_fetcher_column.py
+
+`minutes` テーブルに `fetcher` 列を追加し、既存のファイル名にもフェッチャ名をプレフィックスとして付与します。
+
+### 使い方
+```bash
+python scripts/add_fetcher_column.py [municipality]
+```
+`municipality` を省略した場合は `setagaya` が使用されます。
+
 ## remove_non_question_qas.py
 
 `db/minutes.db` から質問になっていない QA を削除するスクリプトです。
