@@ -1,5 +1,7 @@
 """Fetcher implementation for Setagaya regular session meeting minutes."""
 
+import re
+
 from app.municipal_modules.base import BaseMinuteFetcher
 from utils.logger import get_logger
 
@@ -12,8 +14,18 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
     FETCHER_NAME = "SetagayaRegularFetcher"
 
     def set_search_setting_and_click_search(self, page) -> None:
-        """Set search conditions on the page and initiate search."""
-        raise NotImplementedError("Search setting logic is not implemented.")
+        """Navigate from the top page to the results listing page.
+
+        The top page contains a link labelled "定例会・臨時会の結果" which
+        leads to the page listing the results of regular and extraordinary
+        sessions.  This method clicks that link and waits until the browser
+        has navigated to the expected results page under ``/gikai/teirei/``.
+        """
+
+        page.get_by_role("link", name="定例会・臨時会の結果").click()
+        page.wait_for_url(
+            re.compile(r"https://www\.city\.setagaya\.lg\.jp/gikai/teirei/.*")
+        )
 
     def extract_minutes_urls(self, page):
         """Extract minute page URLs from the search results."""
