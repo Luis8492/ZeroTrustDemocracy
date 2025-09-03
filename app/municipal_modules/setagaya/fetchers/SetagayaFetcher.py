@@ -19,7 +19,7 @@ class SetagayaFetcher(BaseMinuteFetcher):
 
     FETCHER_NAME = "SetagayaCommitteeFetcher"
 
-    def set_search_setting_and_click_search(self, page) -> None:
+    def _set_search_setting_and_click_search(self, page) -> None:
         frame = page.frame(name="TOP")
         if not frame:
             raise RuntimeError("TOP iframe が見つかりませんでした")
@@ -30,6 +30,7 @@ class SetagayaFetcher(BaseMinuteFetcher):
         time.sleep(2)
 
     def extract_minutes_urls(self, page):
+        self._set_search_setting_and_click_search(page)
         frame = page.frame(name="BOTTOM")
         if not frame:
             raise RuntimeError("iframe が見つかりませんでした")
