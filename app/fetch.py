@@ -1,5 +1,11 @@
 import argparse
+import sys
+from pathlib import Path
+
 from playwright.sync_api import sync_playwright
+
+# Ensure repository root is importable when running as a script
+sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # Fetchers are organized under `municipal_modules/<municipality>/fetchers`
 from municipal_modules.setagaya.fetchers import SetagayaFetcher
