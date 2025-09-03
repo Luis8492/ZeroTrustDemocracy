@@ -76,7 +76,9 @@ class Setagaya2Parser(BaseMinuteParser):
 
         remaining = li_html[topic_match.end() :]
 
-        q_match = re.search(r"<strong>質問</strong>\s*(.*?)<br>", remaining, re.S)
+        q_match = re.search(
+            r"<strong>質問(?:&nbsp;)?</strong>\s*(.*?)<br>", remaining, re.S
+        )
         if q_match:
             question_html = q_match.group(0)
             comment = self._clean_html(q_match.group(1))
@@ -93,7 +95,9 @@ class Setagaya2Parser(BaseMinuteParser):
             speech_id += 1
             remaining = remaining[q_match.end() :]
 
-        a_match = re.search(r"<strong>([^<]+)</strong>\s*(.*)", remaining, re.S)
+        a_match = re.search(
+            r"<strong>答弁(?:&nbsp;)?</strong>\s*(.*?)<br>\s*(.*)", remaining, re.S
+        )
         if a_match:
             speaker_name = self._clean_html(a_match.group(1))
             answer_html = a_match.group(0)
