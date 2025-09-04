@@ -98,6 +98,11 @@ class Setagaya2Parser(BaseMinuteParser):
         a_match = re.search(
             r"<strong>答弁(?:&nbsp;)?</strong>\s*(.*?)<br>\s*(.*)", remaining, re.S
         )
+        if not a_match:
+            a_match = re.search(
+                r"<strong>([^<]*?)(?:&nbsp;)?</strong>\s*(.*)", remaining, re.S
+            )
+
         if a_match:
             speaker_name = self._clean_html(a_match.group(1))
             answer_html = a_match.group(0)
