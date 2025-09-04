@@ -41,7 +41,7 @@ class Setagaya2Parser(BaseMinuteParser):
         """Split the minutes text into topic sections."""
         sections: List[str] = []
         pattern = re.compile(
-            r"<h[23]><a[^>]*>(.*?)</a></h[23]>\s*<ul>(.*?)</ul>", re.S
+            r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\S\s]*?)</ul>\s*<h.", re.S
         )
         for questioner, ul_content in pattern.findall(text):
             for li in re.findall(r"<li>(.*?)</li>", ul_content, re.S):
