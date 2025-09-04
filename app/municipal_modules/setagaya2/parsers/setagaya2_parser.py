@@ -39,6 +39,37 @@ class Setagaya2Parser(BaseMinuteParser):
                 date = f"{m.group(1)}{m.group(2)}"
         return {"date": date, "name": name}
 
+    def extract_questioner_section(self, text: str) -> List[Dict[str, str]]:
+        """Split raw HTML into per-questioner sections.
+
+        The Setagaya minutes have two major layouts.  Representative
+        questions use ``<h2>`` headings for each questioner, while general
+        questions list all questioners at the top and then use ``<h3>``
+        headings for individual sections.  This function normalises both
+        forms and returns a list of dictionaries containing the questioner's
+        name and the corresponding HTML fragment.
+        """
+
+        sections: List[Dict[str, str]] = []
+
+        if re.search(r"<h2[^>]*>\s*質問者一覧", text):
+            # General questions – questioners appear as <h3> blocks
+            pattern = re.compile(
+                r"<h3[^>]*>(.*?)</h3>([\s\S]*?)(?=<h3|<p)",
+            )
+            for heading, body in pattern.findall(text + "<p>"):
+                name = self._clean_html(heading)
+                sections.append({"name": name, "section": body})
+        else:
+            # Representative questions – each <h2> corresponds to a questioner
+            pattern = re.compile(
+                r"<h2[^>]*>(.*?)</h2>([\s\S]*?)(?=<h2|<p)",
+            )
+            for heading, body in pattern.findall(text + "<p>"):
+                name = self._clean_html(heading)
+                sections.append({"name": name, "section": body})
+        return sections
+    
     def extract_topic_section(self, questioner: Dict[str, str]) -> List[Dict[str, str]]:
         """Split a questioner's HTML block into individual topic sections.
 
@@ -80,6 +111,35 @@ class Setagaya2Parser(BaseMinuteParser):
             topics.append({"name": name, "section": li_block})
         return topics
 
+    def extract_speeches(self,txt) ->List[Any]:
+        speeches = []
+        if self.pattern == "Pattern1":
+            topic,question,answer = re.findall(r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>",txt)[0]
+            speeches.append(
+                {
+                    "id":1,
+                    "mark":"○",
+                    "name": "議題",
+                    "role": "-",
+                    "raw": topic,
+                    "comment": topic
+                },
+                {
+                    "id": 2,
+                    "mark": "◆",
+                    "name": "質問者",
+                    "role": "質問者",
+                    "comment": question
+                },
+                {
+                    "id": 3,
+                    "mark": "◎",
+                    "name": "回答者",
+                    "role": "回答者",
+                    "comment": answer
+                }
+            )
+        return speeches
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
         """Convert parsed minute data into QA sequences."""
         minute_QAs: List[Any] = []
@@ -91,37 +151,6 @@ class Setagaya2Parser(BaseMinuteParser):
             qa = speeches[1:]
             minute_QAs.append([intro, qa])
         return minute_QAs
-
-    def extract_questioner_section(self, text: str) -> List[Dict[str, str]]:
-        """Split raw HTML into per-questioner sections.
-
-        The Setagaya minutes have two major layouts.  Representative
-        questions use ``<h2>`` headings for each questioner, while general
-        questions list all questioners at the top and then use ``<h3>``
-        headings for individual sections.  This function normalises both
-        forms and returns a list of dictionaries containing the questioner's
-        name and the corresponding HTML fragment.
-        """
-
-        sections: List[Dict[str, str]] = []
-
-        if re.search(r"<h2[^>]*>\s*質問者一覧", text):
-            # General questions – questioners appear as <h3> blocks
-            pattern = re.compile(
-                r"<h3[^>]*>(.*?)</h3>([\s\S]*?)(?=<h3|<p)",
-            )
-            for heading, body in pattern.findall(text + "<p>"):
-                name = self._clean_html(heading)
-                sections.append({"name": name, "section": body})
-        else:
-            # Representative questions – each <h2> corresponds to a questioner
-            pattern = re.compile(
-                r"<h2[^>]*>(.*?)</h2>([\s\S]*?)(?=<h2|<p)",
-            )
-            for heading, body in pattern.findall(text + "<p>"):
-                name = self._clean_html(heading)
-                sections.append({"name": name, "section": body})
-        return sections
 
     def convert(self, text: str) -> Dict[str, Any]:
         """Convert raw minute text into structured data."""
@@ -138,7 +167,7 @@ class Setagaya2Parser(BaseMinuteParser):
                         "topic_id": j,
                         "name": topic["name"],
                         "raw": topic["section"],
-                        "speeches": [],
+                        "speeches": extract_speeches(topic["section"]),
                     }
                 )
         minute_json["QAs"] = self.extract_QAs(minute_json)
