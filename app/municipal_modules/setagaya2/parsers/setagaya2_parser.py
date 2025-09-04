@@ -115,8 +115,7 @@ class Setagaya2Parser(BaseMinuteParser):
         speeches = []
         if self.pattern == "Pattern1":
             topic,question,answer = re.findall(r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>",txt)[0]
-            speeches.append(
-                {
+            speeches = [{
                     "id":1,
                     "mark":"○",
                     "name": "議題",
@@ -137,8 +136,7 @@ class Setagaya2Parser(BaseMinuteParser):
                     "name": "回答者",
                     "role": "回答者",
                     "comment": answer
-                }
-            )
+                }]
         return speeches
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
         """Convert parsed minute data into QA sequences."""
@@ -167,8 +165,8 @@ class Setagaya2Parser(BaseMinuteParser):
                         "topic_id": j,
                         "name": topic["name"],
                         "raw": topic["section"],
-                        "speeches": extract_speeches(topic["section"]),
+                        "speeches": self.extract_speeches(topic["section"]),
                     }
                 )
-        minute_json["QAs"] = self.extract_QAs(minute_json)
+        # minute_json["QAs"] = self.extract_QAs(minute_json)
         return minute_json
