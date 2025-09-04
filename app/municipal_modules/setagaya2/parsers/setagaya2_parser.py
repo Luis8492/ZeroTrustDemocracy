@@ -15,6 +15,10 @@ logger = get_logger(__name__)
 class Setagaya2Parser(BaseMinuteParser):
     """Parser for Setagaya regular session meeting minutes."""
 
+    def __init__(self) -> None:
+        # store meeting name to choose parsing logic
+        self.meeting_name: str = ""
+
     def _clean_html(self, text: str) -> str:
         text = re.sub(r"<br\s*/?>", "\n", text)
         text = re.sub(r"<.*?>", "", text)
@@ -25,6 +29,7 @@ class Setagaya2Parser(BaseMinuteParser):
         """Extract meeting metadata such as date and name."""
         name_match = re.search(r"<h1>(.*?)</h1>", text, re.S)
         name = self._clean_html(name_match.group(1)) if name_match else ""
+        self.meeting_name = name
 
         date = ""
         backlink_match = re.search(
@@ -40,21 +45,43 @@ class Setagaya2Parser(BaseMinuteParser):
     def extract_topic_section(self, text: str) -> List[str]:
         """Split the minutes text into topic sections."""
         sections: List[str] = []
-        pattern = re.compile(
-            r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\S\s]*?)</ul>\s*<h.", re.S
-        )
-        for questioner, ul_content in pattern.findall(text):
-            for li in re.findall(r"<li>(.*?)</li>", ul_content, re.S):
-                sections.append(questioner + "\n" + li)
+        if "一般質問" in self.meeting_name:
+            logger.debug("General question format detected. Parsing not implemented yet.")
+            # TODO: implement parsing for general questions
+        else:
+            if "代表質問" in self.meeting_name:
+                logger.debug("Representative question format detected.")
+            else:
+                logger.debug(
+                    "Unknown meeting type. Defaulting to representative question parsing."
+                )
+            pattern = re.compile(
+                r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\S\s]*?)</ul>\s*<h.",
+                re.S,
+            )
+            for questioner, ul_content in pattern.findall(text):
+                for li in re.findall(r"<li>(.*?)</li>", ul_content, re.S):
+                    sections.append(questioner + "\n" + li)
         return sections
 
     def extract_speeches(self, topic_text: str) -> List[Dict[str, Any]]:
         """Extract speech entries from a topic section."""
+        speeches: List[Dict[str, Any]] = []
+        if "一般質問" in self.meeting_name:
+            logger.debug("General question format detected. Parsing not implemented yet.")
+            return speeches
+        else:
+            if "代表質問" in self.meeting_name:
+                logger.debug("Representative question format detected.")
+            else:
+                logger.debug(
+                    "Unknown meeting type. Defaulting to representative question parsing."
+                )
+
         lines = topic_text.split("\n", 1)
         questioner = self._clean_html(lines[0]) if lines else ""
         li_html = lines[1] if len(lines) > 1 else ""
 
-        speeches: List[Dict[str, Any]] = []
         speech_id = 1
 
         topic_match = re.match(r"<strong>(.*?)</strong><br>", li_html, re.S)
