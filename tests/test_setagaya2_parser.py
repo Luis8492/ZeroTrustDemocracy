@@ -73,3 +73,24 @@ def test_extract_meeting_data_classifies_pattern():
     meeting = parser.extract_meeting_data(text)
     assert parser.pattern == "Pattern1"
     assert "pattern" not in meeting
+
+
+def test_convert_produces_minute_json_with_qas():
+    from app.municipal_modules.setagaya2.parsers import setagaya2_parser
+    setagaya2_parser.classify_pattern = lambda _text: "Pattern1"
+    parser = Setagaya2Parser()
+    text = (
+        "<h1>令和6年第1回定例会 代表質問</h1>"
+        "<h2><a>質問者</a></h2>"
+        "<ul><li>"
+        "<strong>議題</strong><br>"
+        "<strong>質問</strong>質問内容<br>"
+        "<strong>答弁</strong>答弁者<br>答弁内容"
+        "</li></ul>"
+        "<h2></h2>"
+    )
+    minute = parser.convert(text)
+    assert minute["meeting"]["name"] == "令和6年第1回定例会 代表質問"
+    assert minute["topics"][0]["speeches"][1]["name"] == "質問者"
+    assert minute["QAs"][0][1][0]["name"] == "質問者"
+    assert minute["QAs"][0][1][1]["name"] == "答弁者"
