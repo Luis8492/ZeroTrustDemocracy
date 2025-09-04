@@ -56,35 +56,48 @@ def test_extract_questioner_section_ignores_trailing_paragraph_general():
 
 def test_extract_topic_section_returns_empty_when_no_topics():
     parser = Setagaya2Parser()
-    sections = parser.extract_topic_section("")
+    parser.pattern = "Pattern1"
+    sections = parser.extract_topic_section({"name": "A", "section": ""})
     assert sections == []
 
 
 def test_extract_topic_section_parses_representative_questions():
     parser = Setagaya2Parser()
+    parser.pattern = "Pattern1"
     text = (
         "<h1>令和6年第1回定例会 代表質問</h1>"
         "<h2><a>質問者</a></h2>"
-        "<ul><li><strong>議題</strong><br>内容</li></ul>"
+        "<ul><li><strong>議題</strong><ul><li>Q</li><li>A</li></ul></li></ul>"
         "<h2></h2>"
     )
     q_sections = parser.extract_questioner_section(text)
-    sections = parser.extract_topic_section(q_sections[0]["section"])
-    assert sections == ["<strong>議題</strong><br>内容"]
+    sections = parser.extract_topic_section(q_sections[0])
+    assert sections == [
+        {
+            "name": "質問者",
+            "section": "<li><strong>議題</strong><ul><li>Q</li><li>A</li></ul></li>",
+        }
+    ]
 
 
 def test_extract_topic_section_parses_general_questions():
     parser = Setagaya2Parser()
+    parser.pattern = "Pattern1"
     text = (
         "<h1>令和6年第1回定例会 一般質問</h1>"
         "<h2 id=\"p1\">質問者一覧</h2>"
         "<h3 class=\"active\"><a id=\"a1\">質問者</a></h3>"
-        "<ul><li><strong>議題</strong><br>内容</li></ul>"
+        "<ul><li><strong>議題</strong><ul><li>Q</li><li>A</li></ul></li></ul>"
         "<h3></h3>"
     )
     q_sections = parser.extract_questioner_section(text)
-    sections = parser.extract_topic_section(q_sections[0]["section"])
-    assert sections == ["<strong>議題</strong><br>内容"]
+    sections = parser.extract_topic_section(q_sections[0])
+    assert sections == [
+        {
+            "name": "質問者",
+            "section": "<li><strong>議題</strong><ul><li>Q</li><li>A</li></ul></li>",
+        }
+    ]
 
 
 def test_extract_meeting_data_classifies_pattern():

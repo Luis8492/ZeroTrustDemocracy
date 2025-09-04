@@ -39,27 +39,45 @@ class Setagaya2Parser(BaseMinuteParser):
                 date = f"{m.group(1)}{m.group(2)}"
         return {"date": date, "name": name}
 
-    def extract_topic_section(self, text: str) -> List[str]:
-        """Split a questioner block into individual topic sections.
+    def extract_topic_section(self, questioner: Dict[str, str]) -> List[Dict[str, str]]:
+        """Split a questioner's HTML block into individual topic sections.
+
+        The Setagaya minutes use several different HTML layouts.  For now we
+        only support ``Pattern1`` (nested ``<ul>/<li>`` structure).  This
+        function receives a dictionary produced by
+        :meth:`extract_questioner_section` that contains the questioner's
+        ``name`` and raw HTML ``section``.  It returns a list of dictionaries
+        where each item represents one topic ``<li>`` block together with the
+        questioner's name.
 
         Parameters
         ----------
-        text: str
-            HTML fragment that belongs to a single questioner.  It is
-            expected to contain a ``<ul>`` with multiple ``<li>`` entries,
-            each of which represents one topic.
+        questioner: Dict[str, str]
+            A dictionary with ``name`` and ``section`` keys.  ``section`` is
+            expected to contain a ``<ul>`` element in ``Pattern1`` format.
 
         Returns
         -------
-        List[str]
-            Raw HTML strings for each topic ``<li>`` block.
+        List[Dict[str, str]]
+            Each element has ``name`` (the questioner) and ``section`` (raw
+            HTML for the topic ``<li>`` block).
         """
 
-        ul_match = re.search(r"<ul>(.*?)</ul>", text, re.S)
+        if self.pattern != "Pattern1":
+            return []
+
+        name = questioner.get("name", "")
+        text = questioner.get("section", "")
+
+        ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
         if not ul_match:
             return []
-        ul_content = ul_match.group(1)
-        return [m.strip() for m in re.findall(r"<li[^>]*>(.*?)</li>", ul_content, re.S)]
+
+        topics: List[Dict[str, str]] = []
+        for topic, qa in re.findall(r"<li>([\s\S]*?)<ul>([\s\S]*?)</ul>", ul_match.group(1)):
+            li_block = f"<li>{topic}<ul>{qa}</ul></li>"
+            topics.append({"name": name, "section": li_block})
+        return topics
 
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
         """Convert parsed minute data into QA sequences."""
@@ -115,11 +133,16 @@ class Setagaya2Parser(BaseMinuteParser):
             "topics": [],
         }
         for questioner in self.extract_questioner_section(text):
-            for j, topic_section in enumerate(
-                self.extract_topic_section(questioner["section"]), start=1
+            for j, topic in enumerate(
+                self.extract_topic_section(questioner), start=1
             ):
                 minute_json["topics"].append(
-                    {"topic_id": j, "raw": topic_section, "speeches": []}
+                    {
+                        "topic_id": j,
+                        "name": topic["name"],
+                        "raw": topic["section"],
+                        "speeches": [],
+                    }
                 )
         minute_json["QAs"] = self.extract_QAs(minute_json)
         return minute_json
