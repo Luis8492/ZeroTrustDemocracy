@@ -7,10 +7,14 @@ import re
 from typing import Any, Dict, List
 
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
+from app.municipal_modules.setagaya2.dev.pattern_classifier import classify_pattern
 
 
 class Setagaya2Parser(BaseMinuteParser):
     """Parser for Setagaya regular session meeting minutes."""
+
+    def __init__(self) -> None:  # pragma: no cover - simple init
+        self.pattern: str = "Unknown"
 
     def _clean_html(self, text: str) -> str:
         text = re.sub(r"<br\s*/?>", "\n", text)
@@ -20,6 +24,7 @@ class Setagaya2Parser(BaseMinuteParser):
 
     def extract_meeting_data(self, text: str) -> Dict[str, Any]:
         """Extract meeting metadata such as date and name."""
+        self.pattern = classify_pattern(text)
         name_match = re.search(r"<h1>(.*?)</h1>", text, re.S)
         name = self._clean_html(name_match.group(1)) if name_match else ""
 
