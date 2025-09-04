@@ -94,22 +94,22 @@ class Setagaya2Parser(BaseMinuteParser):
             HTML for the topic ``<li>`` block).
         """
 
-        if self.pattern != "Pattern1":
-            print('Not pattern1')
+        if self.pattern == "Pattern1":
+            name = questioner.get("name", "")
+            text = questioner.get("section", "")
+    
+            ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
+            if not ul_match:
+                return []
+    
+            topics: List[Dict[str, str]] = []
+            for topic, qa in re.findall(r"<li>([\s\S]*?)<ul>([\s\S]*?)</ul>", ul_match.group(1)):
+                li_block = f"<li>{topic}<ul>{qa}</ul></li>"
+                topics.append({"name": name, "section": li_block})
+            return topics
+        else:
+            print('Pattern not implemented')
             return []
-
-        name = questioner.get("name", "")
-        text = questioner.get("section", "")
-
-        ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
-        if not ul_match:
-            return []
-
-        topics: List[Dict[str, str]] = []
-        for topic, qa in re.findall(r"<li>([\s\S]*?)<ul>([\s\S]*?)</ul>", ul_match.group(1)):
-            li_block = f"<li>{topic}<ul>{qa}</ul></li>"
-            topics.append({"name": name, "section": li_block})
-        return topics
 
     def divide_topic_pile_into_speeches(self, txt) -> List[Any]:
         speeches = []
