@@ -38,12 +38,17 @@ class Setagaya2Parser(BaseMinuteParser):
         """Split the minutes text into topic sections."""
         sections: List[str] = []
         pattern = re.compile(
-            r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\S\s]*?)</ul>\s*<h.",
+            r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\s\S]*?)</ul>(?=\s*<h[23]|$)",
             re.S,
         )
         for questioner, ul_content in pattern.findall(text):
-            for li in re.findall(r"<li>(.*?)</li>", ul_content, re.S):
-                sections.append(questioner + "\n" + li)
+            if re.search(r"<ul>\s*<li>", ul_content):
+                inner_lis = re.findall(r"<ul>\s*<li>([\s\S]*?)</li>\s*</ul>", ul_content, re.S)
+                for inner in inner_lis:
+                    sections.append(questioner + "\n" + inner)
+            else:
+                for li in re.findall(r"<li>([\s\S]*?)</li>", ul_content, re.S):
+                    sections.append(questioner + "\n" + li)
         return sections
 
     def extract_speeches(self, topic_text: str) -> List[Dict[str, Any]]:
@@ -54,13 +59,21 @@ class Setagaya2Parser(BaseMinuteParser):
         questioner = self._clean_html(lines[0]) if lines else ""
         li_html = lines[1] if len(lines) > 1 else ""
 
+        li_html = li_html.replace("&nbsp;", " ")
+        li_html = li_html.replace("<strong><strong>", "<strong>")
+        li_html = li_html.replace("</strong></strong>", "</strong>")
+
         speech_id = 1
 
-        topic_match = re.match(r"<strong>(.*?)</strong><br>", li_html, re.S)
+        topic_match = re.match(r"<strong>(.*?)</strong>(.*)", li_html, re.S)
         if not topic_match:
             return speeches
-        topic_html = topic_match.group(0)
-        topic_title = self._clean_html(topic_match.group(1))
+
+        topic_inside = topic_match.group(1)
+        remaining = topic_match.group(2)
+
+        parts = re.split(r"<br\s*/?>", topic_inside)
+        topic_title = self._clean_html(parts[0]) if parts else ""
         speeches.append(
             {
                 "id": speech_id,
@@ -68,58 +81,53 @@ class Setagaya2Parser(BaseMinuteParser):
                 "name": "",
                 "role": "",
                 "comment": topic_title,
-                "raw": topic_html,
+                "raw": "<strong>" + topic_inside + "</strong>",
             }
         )
         speech_id += 1
 
-        remaining = li_html[topic_match.end() :]
+        for extra in parts[1:]:
+            remaining = f"<strong>{extra}</strong>" + remaining
 
-        q_match = re.search(
-            r"<strong>質問(?:&nbsp;)?</strong>\s*(.*?)<br>", remaining, re.S
-        )
-        if q_match:
-            question_html = q_match.group(0)
-            comment = self._clean_html(q_match.group(1))
-            speeches.append(
-                {
-                    "id": speech_id,
-                    "mark": "◆",
-                    "name": questioner,
-                    "role": "質問",
-                    "comment": comment,
-                    "raw": question_html,
-                }
-            )
-            speech_id += 1
-            remaining = remaining[q_match.end() :]
+        strong_pattern = re.compile(r"<strong>(.*?)</strong>(.*?)(?=<strong>|$)", re.S)
 
-        a_match = re.search(
-            r"<strong>([^<]*?)(?:&nbsp;)?</strong>\s*(.*)", remaining, re.S
-        )
+        for match in strong_pattern.finditer(remaining):
+            strong_text = self._clean_html(match.group(1))
+            body_html = re.sub(r"^\s*<br\s*/?>", "", match.group(2))
 
-        if a_match:
-            strong_text = self._clean_html(a_match.group(1))
-            after_strong = a_match.group(2)
-            parts = re.split(r"<br>\s*", after_strong, 1)
-            if strong_text == "答弁":
-                speaker_name = self._clean_html(parts[0]) if parts else ""
-                comment_html = parts[1] if len(parts) > 1 else ""
+            if strong_text.startswith("質問"):
+                comment = self._clean_html(body_html)
+                speeches.append(
+                    {
+                        "id": speech_id,
+                        "mark": "◆",
+                        "name": questioner,
+                        "role": "質問",
+                        "comment": comment,
+                        "raw": match.group(0),
+                    }
+                )
+                speech_id += 1
             else:
-                speaker_name = strong_text
-                comment_html = parts[1] if len(parts) > 1 else parts[0]
-            answer_html = a_match.group(0)
-            comment = self._clean_html(comment_html)
-            speeches.append(
-                {
-                    "id": speech_id,
-                    "mark": "○",
-                    "name": speaker_name,
-                    "role": speaker_name,
-                    "comment": comment,
-                    "raw": answer_html,
-                }
-            )
+                if strong_text == "答弁":
+                    parts = re.split(r"<br\s*/?>", body_html, 1)
+                    speaker_name = self._clean_html(parts[0]) if parts else ""
+                    comment_html = parts[1] if len(parts) > 1 else ""
+                else:
+                    speaker_name = strong_text
+                    comment_html = body_html
+                comment = self._clean_html(comment_html)
+                speeches.append(
+                    {
+                        "id": speech_id,
+                        "mark": "○",
+                        "name": speaker_name,
+                        "role": speaker_name,
+                        "comment": comment,
+                        "raw": match.group(0),
+                    }
+                )
+                speech_id += 1
         return speeches
 
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
@@ -127,9 +135,22 @@ class Setagaya2Parser(BaseMinuteParser):
         minute_QAs: List[Any] = []
         for topic in minute.get("topics", []):
             speeches = topic.get("speeches", [])
-            if len(speeches) < 2:
+            if not speeches:
                 continue
             intro = [speeches[0]]
-            qa = speeches[1:]
-            minute_QAs.append([intro, qa])
+            pairs: List[List[Dict[str, Any]]] = []
+            current_q: Dict[str, Any] | None = None
+            for speech in speeches[1:]:
+                if speech.get("role") == "質問":
+                    if current_q is not None:
+                        pairs.append([current_q, {"id": -1, "mark": "", "name": "", "role": "", "comment": "", "raw": ""}])
+                    current_q = speech
+                else:
+                    if current_q is not None:
+                        pairs.append([current_q, speech])
+                        current_q = None
+            if current_q is not None:
+                pairs.append([current_q, {"id": -1, "mark": "", "name": "", "role": "", "comment": "", "raw": ""}])
+            if pairs:
+                minute_QAs.append([intro, pairs])
         return minute_QAs
