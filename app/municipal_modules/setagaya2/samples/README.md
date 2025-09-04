@@ -5,3 +5,5 @@
 3. 各定例会・臨時会の結果ページ(https://www.city.setagaya.lg.jp/02030/26568.html) > 「代表質問」「一般質問」をクリック
 4. 代表質問ページ(https://www.city.setagaya.lg.jp/02030/26569.html) > ページをmeetingsやminutesに保存
 5. 一般質問ページ(https://www.city.setagaya.lg.jp/02030/26571.html) > ページをmeetingsやminutesに保存
+
+具体的な議事録内容はraw_minutes/SetagayaRegularFetcher...を参照してください。
