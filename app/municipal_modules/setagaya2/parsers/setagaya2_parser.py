@@ -89,10 +89,9 @@ class Setagaya2Parser(BaseMinuteParser):
         if re.search(r"<h2[^>]*>\s*質問者一覧", text):
             # General questions – questioners appear as <h3> blocks
             pattern = re.compile(
-                r"<h3[^>]*>(.*?)</h3>(.*?)(?=(?:<h3|<p)|$)",
-                re.S,
+                r"<h3[^>]*>(.*?)</h3>([\s\S]*?)(?=<h3|<p)",
             )
-            for heading, body in pattern.findall(text):
+            for heading, body in pattern.findall(text + "<p>"):
                 name_match = re.search(r"<a[^>]*>(.*?)</a>", heading, re.S)
                 name_html = name_match.group(1) if name_match else heading
                 name = self._clean_html(name_html)
@@ -100,10 +99,9 @@ class Setagaya2Parser(BaseMinuteParser):
         else:
             # Representative questions – each <h2> corresponds to a questioner
             pattern = re.compile(
-                r"<h2[^>]*>(.*?)</h2>(.*?)(?=(?:<h2|<p)|$)",
-                re.S,
+                r"<h2[^>]*>(.*?)</h2>([\s\S]*?)(?=<h2|<p)",
             )
-            for heading, body in pattern.findall(text):
+            for heading, body in pattern.findall(text + "<p>"):
                 name_match = re.search(r"<a[^>]*>(.*?)</a>", heading, re.S)
                 name_html = name_match.group(1) if name_match else heading
                 name = self._clean_html(name_html)
