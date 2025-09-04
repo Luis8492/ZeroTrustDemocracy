@@ -55,6 +55,13 @@ class Setagaya2Parser(BaseMinuteParser):
         """Extract speech entries from a topic section."""
         speeches: List[Dict[str, Any]] = []
 
+        if self.pattern == "Pattern1":
+            pass
+        elif self.pattern == "Pattern2":
+            pass
+        elif self.pattern == "Pattern3":
+            pass
+
         lines = topic_text.split("\n", 1)
         questioner = self._clean_html(lines[0]) if lines else ""
         li_html = lines[1] if len(lines) > 1 else ""
