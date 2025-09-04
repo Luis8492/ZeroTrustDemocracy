@@ -1,6 +1,7 @@
 世田谷区議会の定例会議事録を扱うモジュールです。
 
 # 議事録のパターン
+`pattern_classifier.py` で分類の判定が可能です。
 ## Pattern1. ネスト型（外側li＋内側ul/li）
 概要: `<li>でTopic、その内部に<ul>を置き、<li><strong>質問…</strong></li>と<li><strong>（答弁／役職）…</strong></li>が並ぶ二段構造。`
 
