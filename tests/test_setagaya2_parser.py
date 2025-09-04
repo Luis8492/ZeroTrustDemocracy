@@ -50,3 +50,18 @@ def test_general_minutes_parsing():
     assert len(qas) == 90
     assert qas[0][1][0][0]["name"] == "佐藤 正幸（自民）"
     assert qas[0][1][0][1]["name"] == ""
+
+
+def test_extract_topic_section_handles_nested_list():
+    parser = Setagaya2Parser()
+    text = (
+        "<h2><a>質問者</a></h2>"
+        "<ul>"
+        "<li><strong>議題</strong>説明<ul><li>項目A</li><li>項目B</li></ul>結論</li>"
+        "</ul>"
+    )
+    sections = parser.extract_topic_section(text)
+    assert len(sections) == 1
+    assert sections[0] == (
+        "質問者\n<strong>議題</strong>説明<ul><li>項目A</li><li>項目B</li></ul>結論"
+    )

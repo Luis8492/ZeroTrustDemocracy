@@ -41,14 +41,43 @@ class Setagaya2Parser(BaseMinuteParser):
             r"<h[23][^>]*><a[^>]*>(.*?)</a></h[23]>\s*<ul>([\s\S]*?)</ul>(?=\s*<h[23]|$)",
             re.S,
         )
+        def split_top_level_lis(ul_html: str) -> List[str]:
+            lis: List[str] = []
+            depth = 0
+            current: List[str] = []
+            i = 0
+            while i < len(ul_html):
+                if ul_html.startswith("<li", i):
+                    end = ul_html.find(">", i)
+                    if depth == 0:
+                        depth = 1
+                        i = end + 1
+                        current = []
+                        continue
+                    depth += 1
+                    current.append(ul_html[i : end + 1])
+                    i = end + 1
+                    continue
+                if ul_html.startswith("</li>", i):
+                    if depth == 1:
+                        lis.append("".join(current))
+                        depth = 0
+                        current = []
+                        i += len("</li>")
+                        continue
+                    if depth > 1:
+                        depth -= 1
+                        current.append("</li>")
+                        i += len("</li>")
+                        continue
+                if depth > 0:
+                    current.append(ul_html[i])
+                i += 1
+            return lis
+
         for questioner, ul_content in pattern.findall(text):
-            if re.search(r"<ul>\s*<li>", ul_content):
-                inner_lis = re.findall(r"<ul>\s*<li>([\s\S]*?)</li>\s*</ul>", ul_content, re.S)
-                for inner in inner_lis:
-                    sections.append(questioner + "\n" + inner)
-            else:
-                for li in re.findall(r"<li>([\s\S]*?)</li>", ul_content, re.S):
-                    sections.append(questioner + "\n" + li)
+            for li in split_top_level_lis(ul_content):
+                sections.append(questioner + "\n" + li)
         return sections
 
     def extract_speeches(self, topic_text: str) -> List[Dict[str, Any]]:
