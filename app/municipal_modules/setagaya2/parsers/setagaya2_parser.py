@@ -125,3 +125,17 @@ class Setagaya2Parser(BaseMinuteParser):
             qa = speeches[1:]
             minute_QAs.append([intro, qa])
         return minute_QAs
+
+    def convert(self, text: str) -> Dict[str, Any]:
+        """Convert raw minute text into structured data."""
+        minute_json: Dict[str, Any] = {
+            "meeting": self.extract_meeting_data(text),
+            "topics": [],
+        }
+        for i, topic_section in enumerate(self.extract_topic_section(text), start=1):
+            speeches = self.extract_speeches(topic_section)
+            minute_json["topics"].append(
+                {"topic_id": i, "raw": topic_section, "speeches": speeches}
+            )
+        minute_json["QAs"] = self.extract_QAs(minute_json)
+        return minute_json
