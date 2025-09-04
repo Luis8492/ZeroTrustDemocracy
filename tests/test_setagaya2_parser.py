@@ -8,6 +8,7 @@ from app.municipal_modules.setagaya2.parsers.setagaya2_parser import Setagaya2Pa
 
 def test_extract_speeches_handles_nbsp_markers():
     parser = Setagaya2Parser()
+    parser.extract_meeting_data("<h1>令和6年第1回定例会 代表質問</h1>")
     topic_text = (
         "質問者\n"
         "<strong>議題</strong><br>"
@@ -24,6 +25,7 @@ def test_extract_speeches_handles_nbsp_markers():
 
 def test_extract_speeches_handles_direct_speaker_strong():
     parser = Setagaya2Parser()
+    parser.extract_meeting_data("<h1>令和6年第1回定例会 代表質問</h1>")
     topic_text = (
         "質問者\n"
         "<strong>議題</strong><br>"
@@ -34,3 +36,24 @@ def test_extract_speeches_handles_direct_speaker_strong():
     assert len(speeches) == 3
     assert speeches[2]["name"] == "教育長"
     assert speeches[2]["comment"] == "答弁内容"
+
+
+def test_extract_topic_section_returns_empty_for_general_questions():
+    parser = Setagaya2Parser()
+    text = "<h1>令和6年第1回定例会 一般質問</h1>"
+    parser.extract_meeting_data(text)
+    sections = parser.extract_topic_section(text)
+    assert sections == []
+
+
+def test_extract_topic_section_parses_representative_questions():
+    parser = Setagaya2Parser()
+    text = (
+        "<h1>令和6年第1回定例会 代表質問</h1>"
+        "<h2><a>質問者</a></h2>"
+        "<ul><li><strong>議題</strong><br>内容</li></ul>"
+        "<h2></h2>"
+    )
+    parser.extract_meeting_data(text)
+    sections = parser.extract_topic_section(text)
+    assert sections == ["質問者\n<strong>議題</strong><br>内容"]
