@@ -65,3 +65,11 @@ def test_extract_topic_section_parses_general_questions():
     )
     sections = parser.extract_topic_section(text)
     assert sections == ["質問者\n<strong>議題</strong><br>内容"]
+
+
+def test_extract_meeting_data_classifies_pattern():
+    parser = Setagaya2Parser()
+    text = "<ul><li><ul><li><strong>質問</strong></li></ul></li></ul>"
+    meeting = parser.extract_meeting_data(text)
+    assert parser.pattern == "Pattern1"
+    assert "pattern" not in meeting
