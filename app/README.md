@@ -5,8 +5,7 @@
 ## 主なファイルとディレクトリ
 
 - `feederAPI.py` - FastAPI アプリケーション
-- `minute_converter.py` - 議事録を構造化データに変換
-- `minute_analyzer.py` - 解析用スクリプト
+- `minute_analyzer.py` - 議事録の解析と構造化データへの変換
 - `anonymizer.py` - `PIIs/` 内のリストを用いて個人情報を匿名化
 - `remove_non_question_qas.py` - 質問になっていないQAを除外
 - `municipal_modules/` - 自治体ごとの実装および共有基底クラス

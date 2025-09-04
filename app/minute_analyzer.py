@@ -1,13 +1,15 @@
+from __future__ import annotations
+
 import sqlite3
 import os, re
 import json
 import sys
 from pathlib import Path
+from typing import Dict, Any
 
 # Ensure repository root is on the Python path before importing modules outside `app`
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-import minute_converter
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
 from app.municipal_modules.setagaya.fetchers import SetagayaFetcher
@@ -52,9 +54,20 @@ def query_not_analyzed_data(cur, fetcher_name: str):
     )
     return cur.fetchall()
 
+def convert_minute_txt_to_json(text: str, parser: BaseMinuteParser) -> Dict[str, Any]:
+    """Convert raw minute text to a structured JSON-like dict using the given parser."""
+    minute_json: Dict[str, Any] = {"meeting": parser.extract_meeting_data(text), "topics": []}
+    for i, topic_section in enumerate(parser.extract_topic_section(text), start=1):
+        speeches = parser.extract_speeches(topic_section)
+        minute_json["topics"].append(
+            {"topic_id": i, "raw": topic_section, "speeches": speeches}
+        )
+    return minute_json
+
+
 def analyze_minute(file_path: str, parser: BaseMinuteParser) -> dict:
     minute_text = open(file_path, "r", encoding="cp932", errors="replace").read()
-    minute_json = minute_converter.convert_minute_txt_to_json(minute_text, parser)
+    minute_json = convert_minute_txt_to_json(minute_text, parser)
     minute_json["file_name"] = file_path.split("/")[-1]
     minute_json["QAs"] = parser.extract_QAs(minute_json)
     return minute_json
@@ -113,4 +126,6 @@ def save_QAs(minute,conn):
                 )
     conn.commit()
 
-analyze_unprocessed_minutes(fetcher_name=SetagayaFetcher.FETCHER_NAME)
+
+if __name__ == "__main__":
+    analyze_unprocessed_minutes(fetcher_name=SetagayaFetcher.FETCHER_NAME)
