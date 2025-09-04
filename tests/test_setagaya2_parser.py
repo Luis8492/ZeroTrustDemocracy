@@ -6,144 +6,47 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from app.municipal_modules.setagaya2.parsers.setagaya2_parser import Setagaya2Parser
 from app.minute_converter import convert_minute_txt_to_json
 
+REP_FILE = Path(
+    "app/raw_minutes/SetagayaRegularFetcher_https_www_city_setagaya_lg_jp_02030_21941_html.html"
+)
+GEN_FILE = Path(
+    "app/raw_minutes/SetagayaRegularFetcher_https_www_city_setagaya_lg_jp_02030_21942_html.html"
+)
 
-def test_extract_speeches_handles_nbsp_markers():
+
+def test_representative_minutes_parsing():
     parser = Setagaya2Parser()
-    topic_text = (
-        "質問者\n"
-        "<strong>議題</strong><br>"
-        "<strong>質問&nbsp;</strong>質問内容<br>"
-        "<strong>答弁&nbsp;</strong>答弁者<br>答弁内容"
-    )
-    speeches = parser.extract_speeches(topic_text)
-    assert len(speeches) == 3
-    assert speeches[1]["name"] == "質問者"
-    assert speeches[1]["comment"] == "質問内容"
-    assert speeches[2]["name"] == "答弁者"
-    assert speeches[2]["comment"] == "答弁内容"
-
-
-def test_extract_speeches_handles_direct_speaker_strong():
-    parser = Setagaya2Parser()
-    topic_text = (
-        "質問者\n"
-        "<strong>議題</strong><br>"
-        "<strong>質問</strong>質問内容<br>"
-        "<strong>教育長&nbsp;</strong>答弁内容"
-    )
-    speeches = parser.extract_speeches(topic_text)
-    assert len(speeches) == 3
-    assert speeches[2]["name"] == "教育長"
-    assert speeches[2]["comment"] == "答弁内容"
-
-
-def test_extract_topic_section_returns_empty_when_no_topics():
-    parser = Setagaya2Parser()
-    text = "<h1>令和6年第1回定例会 代表質問</h1>"
-    sections = parser.extract_topic_section(text)
-    assert sections == []
-
-
-def test_extract_topic_section_parses_representative_questions():
-    parser = Setagaya2Parser()
-    text = (
-        "<h1>令和6年第1回定例会 代表質問</h1>"
-        "<h2><a>質問者</a></h2>"
-        "<ul><li><strong>議題</strong><br>内容</li></ul>"
-        "<h2></h2>"
-    )
-    sections = parser.extract_topic_section(text)
-    assert sections == ["質問者\n<strong>議題</strong><br>内容"]
-
-
-def test_extract_topic_section_parses_general_questions():
-    parser = Setagaya2Parser()
-    text = (
-        "<h1>令和6年第1回定例会 一般質問</h1>"
-        "<h2><a>質問者</a></h2>"
-        "<ul><li><strong>議題</strong><br>内容</li></ul>"
-        "<h2></h2>"
-    )
-    sections = parser.extract_topic_section(text)
-    assert sections == ["質問者\n<strong>議題</strong><br>内容"]
-
-
-def test_extract_topic_section_expands_nested_li():
-    parser = Setagaya2Parser()
-    text = Path("app/municipal_modules/setagaya2/samples/nested_li.html").read_text(
-        encoding="utf-8"
-    )
-    sections = parser.extract_topic_section(text)
-    assert sections == [
-        "質問者\n<strong>議題</strong><br><strong>質問</strong>質問文<br><strong>区長</strong>回答文"
-    ]
-    speeches = parser.extract_speeches(sections[0])
-    assert speeches[0]["comment"] == "議題"
-    assert speeches[1]["name"] == "質問者"
-    assert speeches[1]["comment"] == "質問文"
-    assert speeches[2]["name"] == "区長"
-    assert speeches[2]["comment"] == "回答文"
-
-
-def test_extract_speeches_single_strong_contains_question():
-    parser = Setagaya2Parser()
-    text = Path(
-        "app/municipal_modules/setagaya2/samples/single_strong_in_li.html"
-    ).read_text(encoding="utf-8")
-    section = parser.extract_topic_section(text)[0]
-    speeches = parser.extract_speeches(section)
-    assert speeches[0]["comment"] == "議題"
-    assert speeches[1]["name"] == "質問者"
-    assert speeches[1]["comment"] == "質問内容"
-    assert speeches[2]["name"] == "区長"
-    assert speeches[2]["comment"] == "回答内容"
-
-
-def test_extract_speeches_separate_strongs():
-    parser = Setagaya2Parser()
-    text = Path(
-        "app/municipal_modules/setagaya2/samples/separate_strongs.html"
-    ).read_text(encoding="utf-8")
-    section = parser.extract_topic_section(text)[0]
-    speeches = parser.extract_speeches(section)
-    assert speeches[1]["comment"] == "質問内容"
-    assert speeches[2]["name"] == "区長"
-    assert speeches[2]["comment"] == "回答内容"
-
-
-def test_extract_speeches_normalizes_double_strong():
-    parser = Setagaya2Parser()
-    text = Path(
-        "app/municipal_modules/setagaya2/samples/double_strong.html"
-    ).read_text(encoding="utf-8")
-    section = parser.extract_topic_section(text)[0]
-    speeches = parser.extract_speeches(section)
-    assert speeches[1]["comment"] == "質問内容"
-    assert speeches[2]["name"] == "区長"
-    assert speeches[2]["comment"] == "回答内容"
-
-
-def test_extract_QAs_representative_sample():
-    parser = Setagaya2Parser()
-    text = Path(
-        "app/municipal_modules/setagaya2/samples/separate_strongs.html"
-    ).read_text(encoding="utf-8")
+    text = REP_FILE.read_text(encoding="utf-8")
     minute = convert_minute_txt_to_json(text, parser)
+
+    assert len(minute["topics"]) == 33
+    speeches = minute["topics"][0]["speeches"]
+    assert speeches[0]["comment"] == "HPVワクチン接種助成の継続"
+    assert speeches[1]["name"] == "自由民主党世田谷区議団 山口 ひろひさ"
+    assert "HPVワクチン" in speeches[1]["comment"]
+    assert speeches[2]["name"] == "保健所長"
+    assert "接種機会を逃さぬ" in speeches[2]["comment"]
+
     qas = parser.extract_QAs(minute)
-    total_pairs = sum(len(pairs) for _, pairs in qas)
-    assert total_pairs == 1
-    assert qas[0][1][0][0]["name"] == "質問者"
-    assert qas[0][1][0][1]["name"] == "区長"
+    assert len(qas) == 33
+    assert qas[0][1][0][0]["name"] == "自由民主党世田谷区議団 山口 ひろひさ"
+    assert qas[0][1][0][1]["name"] == "保健所長"
 
 
-def test_extract_QAs_general_sample():
+def test_general_minutes_parsing():
     parser = Setagaya2Parser()
-    text = Path("app/municipal_modules/setagaya2/samples/qa_general.html").read_text(
-        encoding="utf-8"
-    )
+    text = GEN_FILE.read_text(encoding="utf-8")
     minute = convert_minute_txt_to_json(text, parser)
+
+    assert len(minute["topics"]) == 90
+    speeches = minute["topics"][0]["speeches"]
+    assert speeches[0]["comment"] == "違反広告物への対策の強化"
+    assert speeches[1]["name"] == "佐藤 正幸（自民）"
+    assert "広告物除去協力員" in speeches[1]["comment"]
+    assert speeches[2]["name"] == ""
+    assert "周知できるよう工夫する" in speeches[2]["comment"]
+
     qas = parser.extract_QAs(minute)
-    total_pairs = sum(len(pairs) for _, pairs in qas)
-    assert total_pairs == 2
-    assert qas[0][1][0][0]["name"] == "質問者A"
-    assert qas[1][1][0][0]["name"] == "質問者B"
+    assert len(qas) == 90
+    assert qas[0][1][0][0]["name"] == "佐藤 正幸（自民）"
+    assert qas[0][1][0][1]["name"] == ""

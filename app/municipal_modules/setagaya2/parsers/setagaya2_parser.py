@@ -111,8 +111,12 @@ class Setagaya2Parser(BaseMinuteParser):
             else:
                 if strong_text == "答弁":
                     parts = re.split(r"<br\s*/?>", body_html, 1)
-                    speaker_name = self._clean_html(parts[0]) if parts else ""
-                    comment_html = parts[1] if len(parts) > 1 else ""
+                    if len(parts) == 1:
+                        speaker_name = ""
+                        comment_html = parts[0]
+                    else:
+                        speaker_name = self._clean_html(parts[0])
+                        comment_html = parts[1]
                 else:
                     speaker_name = strong_text
                     comment_html = body_html
