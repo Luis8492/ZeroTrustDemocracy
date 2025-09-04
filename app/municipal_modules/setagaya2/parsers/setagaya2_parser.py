@@ -32,18 +32,16 @@ class Setagaya2Parser(BaseMinuteParser):
         )
         if backlink_match:
             link_text = self._clean_html(backlink_match.group(1))
-            m = re.search(r"令和(\d+)年.*（(.+?)）", link_text)
+            m = re.search(r"(令和\d+年).*（(.+?)）", link_text)
             if m:
-                era_year = int(m.group(1))
-                western_year = 2018 + era_year
-                date = f"{western_year}年{m.group(2)}"
+                date = f"{m.group(1)}{m.group(2)}"
         return {"date": date, "name": name}
 
     def extract_topic_section(self, text: str) -> List[str]:
         """Split the minutes text into topic sections."""
         sections: List[str] = []
         pattern = re.compile(
-            r"<h3><a[^>]*>(.*?)</a></h3>\s*<ul>(.*?)</ul>", re.S
+            r"<h[23]><a[^>]*>(.*?)</a></h[23]>\s*<ul>(.*?)</ul>", re.S
         )
         for questioner, ul_content in pattern.findall(text):
             for li in re.findall(r"<li>(.*?)</li>", ul_content, re.S):
@@ -59,46 +57,70 @@ class Setagaya2Parser(BaseMinuteParser):
         speeches: List[Dict[str, Any]] = []
         speech_id = 1
 
-        topic_match = re.search(r"<strong>(.*?)</strong>", li_html, re.S)
+        topic_match = re.match(r"<strong>(.*?)</strong><br>", li_html, re.S)
         if not topic_match:
             return speeches
+        topic_html = topic_match.group(0)
         topic_title = self._clean_html(topic_match.group(1))
         speeches.append(
             {
                 "id": speech_id,
-                "mark": "",
+                "mark": "○",
                 "name": "",
-                "role": "topic",
+                "role": "",
                 "comment": topic_title,
-                "raw": topic_title,
+                "raw": topic_html,
             }
         )
         speech_id += 1
 
         remaining = li_html[topic_match.end() :]
-        qa_pattern = re.compile(
-            r"<strong>(質問|答弁)&nbsp;</strong>(.*?)(?=(<strong>(?:質問|答弁)&nbsp;</strong>|$))",
-            re.S,
+
+        q_match = re.search(
+            r"<strong>質問(?:&nbsp;)?</strong>\s*(.*?)<br>", remaining, re.S
         )
-        for role, content, _ in qa_pattern.findall(remaining):
-            comment = self._clean_html(content)
-            if role == "質問":
-                mark = "◆"
-                name = questioner
-            else:
-                mark = "◎"
-                name = ""
+        if q_match:
+            question_html = q_match.group(0)
+            comment = self._clean_html(q_match.group(1))
             speeches.append(
                 {
                     "id": speech_id,
-                    "mark": mark,
-                    "name": name,
-                    "role": role,
+                    "mark": "◆",
+                    "name": questioner,
+                    "role": "質問",
                     "comment": comment,
-                    "raw": f"{role}{comment}",
+                    "raw": question_html,
                 }
             )
             speech_id += 1
+            remaining = remaining[q_match.end() :]
+
+        a_match = re.search(
+            r"<strong>([^<]*?)(?:&nbsp;)?</strong>\s*(.*)", remaining, re.S
+        )
+
+        if a_match:
+            strong_text = self._clean_html(a_match.group(1))
+            after_strong = a_match.group(2)
+            parts = re.split(r"<br>\s*", after_strong, 1)
+            if strong_text == "答弁":
+                speaker_name = self._clean_html(parts[0]) if parts else ""
+                comment_html = parts[1] if len(parts) > 1 else ""
+            else:
+                speaker_name = strong_text
+                comment_html = parts[1] if len(parts) > 1 else parts[0]
+            answer_html = a_match.group(0)
+            comment = self._clean_html(comment_html)
+            speeches.append(
+                {
+                    "id": speech_id,
+                    "mark": "○",
+                    "name": speaker_name,
+                    "role": speaker_name,
+                    "comment": comment,
+                    "raw": answer_html,
+                }
+            )
         return speeches
 
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
