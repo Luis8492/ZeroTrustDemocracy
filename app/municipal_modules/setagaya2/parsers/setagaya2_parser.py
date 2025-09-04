@@ -22,8 +22,8 @@ class Setagaya2Parser(BaseMinuteParser):
         text = text.replace("&nbsp;", " ")
         return html.unescape(text).strip()
 
-    def extract_meeting_data(self, text: str) -> Dict[str, Any]:
-        """Extract meeting metadata such as date and name."""
+    def get_meeting_data(self, text: str) -> Dict[str, Any]:
+        """Get meeting metadata such as date and name."""
         self.pattern = classify_pattern(text)
         name_match = re.search(r"<h1>(.*?)</h1>", text, re.S)
         name = self._clean_html(name_match.group(1)) if name_match else ""
@@ -39,8 +39,8 @@ class Setagaya2Parser(BaseMinuteParser):
                 date = f"{m.group(1)}{m.group(2)}"
         return {"date": date, "name": name}
 
-    def extract_questioner_section(self, text: str) -> List[Dict[str, str]]:
-        """Split raw HTML into per-questioner sections.
+    def divide_entire_minute_into_questioners(self, text: str) -> List[Dict[str, str]]:
+        """Divide the entire minute HTML into per-questioner sections.
 
         The Setagaya minutes have two major layouts.  Representative
         questions use ``<h2>`` headings for each questioner, while general
@@ -70,13 +70,13 @@ class Setagaya2Parser(BaseMinuteParser):
                 sections.append({"name": name, "section": body})
         return sections
     
-    def extract_topic_section(self, questioner: Dict[str, str]) -> List[Dict[str, str]]:
-        """Split a questioner's HTML block into individual topic sections.
+    def divide_questioner_piles_into_topics(self, questioner: Dict[str, str]) -> List[Dict[str, str]]:
+        """Divide a questioner's HTML block into individual topic sections.
 
         The Setagaya minutes use several different HTML layouts.  For now we
         only support ``Pattern1`` (nested ``<ul>/<li>`` structure).  This
         function receives a dictionary produced by
-        :meth:`extract_questioner_section` that contains the questioner's
+        :meth:`divide_entire_minute_into_questioners` that contains the questioner's
         ``name`` and raw HTML ``section``.  It returns a list of dictionaries
         where each item represents one topic ``<li>`` block together with the
         questioner's name.
@@ -111,11 +111,14 @@ class Setagaya2Parser(BaseMinuteParser):
             topics.append({"name": name, "section": li_block})
         return topics
 
-    def extract_speeches(self,txt) ->List[Any]:
+    def divide_topic_pile_into_speeches(self, txt) -> List[Any]:
         speeches = []
         if self.pattern == "Pattern1":
-            topic,question,answer = re.findall(r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>",txt)[0]
-            speeches = [{
+            topic, question, answer = re.findall(
+                r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>", txt
+            )[0]
+            speeches = [
+                {
                     "id":1,
                     "mark":"○",
                     "name": "議題",
@@ -136,10 +139,12 @@ class Setagaya2Parser(BaseMinuteParser):
                     "name": "回答者",
                     "role": "回答者",
                     "comment": answer
-                }]
+                },
+            ]
         return speeches
-    def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
-        """Convert parsed minute data into QA sequences."""
+
+    def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
+        """Generate QA combinations from parsed minute data."""
         minute_QAs: List[Any] = []
         for topic in minute.get("topics", []):
             speeches = topic.get("speeches", [])
@@ -153,20 +158,22 @@ class Setagaya2Parser(BaseMinuteParser):
     def convert(self, text: str) -> Dict[str, Any]:
         """Convert raw minute text into structured data."""
         minute_json: Dict[str, Any] = {
-            "meeting": self.extract_meeting_data(text),
+            "meeting": self.get_meeting_data(text),
             "topics": [],
         }
-        for questioner in self.extract_questioner_section(text):
+        for questioner in self.divide_entire_minute_into_questioners(text):
             for j, topic in enumerate(
-                self.extract_topic_section(questioner), start=1
+                self.divide_questioner_piles_into_topics(questioner), start=1
             ):
                 minute_json["topics"].append(
                     {
                         "topic_id": j,
                         "name": topic["name"],
                         "raw": topic["section"],
-                        "speeches": self.extract_speeches(topic["section"]),
+                        "speeches": self.divide_topic_pile_into_speeches(
+                            topic["section"]
+                        ),
                     }
                 )
-        # minute_json["QAs"] = self.extract_QAs(minute_json)
+        # minute_json["QAs"] = self.generate_QA_combination(minute_json)
         return minute_json
