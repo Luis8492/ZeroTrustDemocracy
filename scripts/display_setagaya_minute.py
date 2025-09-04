@@ -8,7 +8,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from app.minute_converter import convert_minute_txt_to_json
+from app.minute_analyzer import convert_minute_txt_to_json
 from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
 
 
