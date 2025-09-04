@@ -1,5 +1,6 @@
 from app.municipal_modules.setagaya2.parsers.setagaya2_parser import Setagaya2Parser
 import sys
+import json
 
 fileid = sys.argv[1]
 
