@@ -64,6 +64,7 @@ class Setagaya2Parser(BaseMinuteParser):
         """
 
         if self.pattern != "Pattern1":
+            print('Not pattern1')
             return []
 
         name = questioner.get("name", "")
@@ -110,9 +111,7 @@ class Setagaya2Parser(BaseMinuteParser):
                 r"<h3[^>]*>(.*?)</h3>([\s\S]*?)(?=<h3|<p)",
             )
             for heading, body in pattern.findall(text + "<p>"):
-                name_match = re.search(r"<a[^>]*>(.*?)</a>", heading, re.S)
-                name_html = name_match.group(1) if name_match else heading
-                name = self._clean_html(name_html)
+                name = self._clean_html(heading)
                 sections.append({"name": name, "section": body})
         else:
             # Representative questions – each <h2> corresponds to a questioner
@@ -120,9 +119,7 @@ class Setagaya2Parser(BaseMinuteParser):
                 r"<h2[^>]*>(.*?)</h2>([\s\S]*?)(?=<h2|<p)",
             )
             for heading, body in pattern.findall(text + "<p>"):
-                name_match = re.search(r"<a[^>]*>(.*?)</a>", heading, re.S)
-                name_html = name_match.group(1) if name_match else heading
-                name = self._clean_html(name_html)
+                name = self._clean_html(heading)
                 sections.append({"name": name, "section": body})
         return sections
 
