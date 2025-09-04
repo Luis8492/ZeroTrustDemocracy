@@ -54,14 +54,64 @@ class Setagaya2Parser(BaseMinuteParser):
     def extract_speeches(self, topic_text: str) -> List[Dict[str, Any]]:
         """Extract speech entries from a topic section."""
         speeches: List[Dict[str, Any]] = []
+        # Default to Pattern1 behaviour when pattern is unknown so that the
+        # function can be exercised independently in unit tests.
+        pattern = self.pattern if self.pattern != "Unknown" else "Pattern1"
 
-        if self.pattern == "Pattern1":
+        if pattern == "Pattern1":
+            # topic_text is expected to look like:
+            #   "質問者\n<strong>議題</strong><br>..."
+            # where the first line contains the questioner name and the rest of
+            # the string is a sequence of <strong> blocks describing the topic,
+            # question and answers.
+            questioner = ""
+            body = topic_text
+            if "\n" in topic_text:
+                questioner, body = topic_text.split("\n", 1)
+                questioner = self._clean_html(questioner)
+
+            # Split at each <strong>..</strong> and capture the trailing text
+            # until the next <strong> or end of string.
+            segments = re.findall(r"<strong>(.*?)</strong>(.*?)(?=<strong>|$)", body, re.S)
+
+            speech_id = 1
+            for idx, (header, tail) in enumerate(segments):
+                header_clean = self._clean_html(header)
+                tail_clean = self._clean_html(tail)
+
+                if idx == 0:
+                    # First segment is the topic title.
+                    speeches.append(
+                        {"id": speech_id, "name": "", "comment": header_clean}
+                    )
+                    speech_id += 1
+                    continue
+
+                if header_clean.startswith("質問"):
+                    name = questioner
+                    comment = tail_clean
+                else:
+                    # For answers the speaker name may appear either after the
+                    # generic marker (e.g. "答弁") or directly within the
+                    # <strong> tag (e.g. "教育長").
+                    if header_clean in ("答弁",):
+                        parts = tail_clean.split("\n", 1)
+                        name = parts[0] if parts else ""
+                        comment = parts[1] if len(parts) > 1 else ""
+                    else:
+                        name = header_clean
+                        comment = tail_clean
+
+                speeches.append(
+                    {"id": speech_id, "name": name, "comment": comment}
+                )
+                speech_id += 1
+
+        elif pattern == "Pattern2":
             pass
-        elif self.pattern == "Pattern2":
+        elif pattern == "Pattern3":
             pass
-        elif self.pattern == "Pattern3":
-            pass
-        # TODO
+        # TODO: Pattern2 and Pattern3 are not yet implemented.
         return speeches
 
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
