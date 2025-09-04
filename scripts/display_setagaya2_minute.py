@@ -19,7 +19,7 @@ def main(file_name: str) -> None:
     parser = Setagaya2Parser()
     minute = convert_minute_txt_to_json(text, parser)
     minute["file_name"] = file_name
-    minute["QAs"] = parser.extract_QAs(minute)
+    minute["QAs"] = parser.generate_QA_combination(minute)
     print(json.dumps(minute, ensure_ascii=False, indent=2))
 
 
