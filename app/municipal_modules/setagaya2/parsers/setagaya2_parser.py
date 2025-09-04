@@ -101,11 +101,22 @@ class Setagaya2Parser(BaseMinuteParser):
             ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
             if not ul_match:
                 return []
-    
             topics: List[Dict[str, str]] = []
             for topic, qa in re.findall(r"<li>([\s\S]*?)<ul>([\s\S]*?)</ul>", ul_match.group(1)):
                 li_block = f"<li>{topic}<ul>{qa}</ul></li>"
-                topics.append({"name": name, "section": li_block})
+                topics.append({"name": name, "speeches": li_block})
+            return topics
+        elif self.pattern =="Pattern2":
+            name = questioner.get("name", "")
+            text = questioner.get("section", "")
+    
+            ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
+            if not ul_match:
+                return []
+            topics: List[Dict[str, str]] = []
+            for topic,speeches in re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</li>",ul_match.group(1)):
+                li_block = f"<li><strong>{topic}<br>{speeches}</li>"
+                topics.append({"name": name, "speeches": li_block})
             return topics
         else:
             print('Pattern not implemented')
@@ -141,6 +152,32 @@ class Setagaya2Parser(BaseMinuteParser):
                     "comment": answer
                 },
             ]
+        elif self.pattern == "Pattern2":
+            topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",txt)[0]
+            speeches = [
+                {
+                    "id":1,
+                    "mark":"○",
+                    "name": "議題",
+                    "role": "-",
+                    "raw": topic,
+                    "comment": topic
+                },
+                {
+                    "id": 2,
+                    "mark": "◆",
+                    "name": "質問者",
+                    "role": roleQ,
+                    "comment": question
+                },
+                {
+                    "id": 3,
+                    "mark": "◎",
+                    "name": "回答者",
+                    "role": roleA,
+                    "comment": answer
+                },
+            ]
         return speeches
 
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
@@ -169,9 +206,9 @@ class Setagaya2Parser(BaseMinuteParser):
                     {
                         "topic_id": j,
                         "name": topic["name"],
-                        "raw": topic["section"],
+                        "raw": topic["speeches"],
                         "speeches": self.divide_topic_pile_into_speeches(
-                            topic["section"]
+                            topic["speeches"]
                         ),
                     }
                 )
