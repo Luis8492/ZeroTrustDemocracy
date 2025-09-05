@@ -101,10 +101,35 @@ class Setagaya2Parser(BaseMinuteParser):
             ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
             if not ul_match:
                 return []
-            topics: List[Dict[str, str]] = []
-            for topic, qa in re.findall(r"<li>([\s\S]*?)<ul>([\s\S]*?)</ul>", ul_match.group(1)):
-                li_block = f"<li>{topic}<ul>{qa}</ul></li>"
-                topics.append({"name": name, "speeches": li_block})
+            topics: List[Dict[str, Any]] = []
+            for topic, question, answer = re.findall(
+                r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>", ul_match.group(1)
+            ):
+                speeches = [
+                    {
+                        "id":1,
+                        "mark":"○",
+                        "name": "議題",
+                        "role": "-",
+                        "raw": topic,
+                        "comment": topic
+                    },
+                    {
+                        "id": 2,
+                        "mark": "◆",
+                        "name": "質問者",
+                        "role": "質問者",
+                        "comment": question
+                    },
+                    {
+                        "id": 3,
+                        "mark": "◎",
+                        "name": "回答者",
+                        "role": "回答者",
+                        "comment": answer
+                    },
+                ]
+                topics.append({"name": name, "speeches": speeches, "raw":f"<li>{topic}<li>{question}<li>{answer}</li>"})
             return topics
         elif self.pattern == "Pattern2":
             name = questioner.get("name", "")
@@ -113,10 +138,34 @@ class Setagaya2Parser(BaseMinuteParser):
             ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
             if not ul_match:
                 return []
-            topics: List[Dict[str, str]] = []
-            for topic,speeches in re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</li>",ul_match.group(1)):
-                li_block = f"<li><strong>{topic}<br>{speeches}</li>"
-                topics.append({"name": name, "speeches": li_block})
+            topics: List[Dict[str, Any]] = []
+            
+            for topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
+                speeches = [
+                    {
+                        "id":1,
+                        "mark":"○",
+                        "name": "議題",
+                        "role": "-",
+                        "raw": topic,
+                        "comment": topic
+                    },
+                    {
+                        "id": 2,
+                        "mark": "◆",
+                        "name": "質問者",
+                        "role": roleQ,
+                        "comment": question
+                    },
+                    {
+                        "id": 3,
+                        "mark": "◎",
+                        "name": "回答者",
+                        "role": roleA,
+                        "comment": answer
+                    },
+                ]
+                topics.append({"name": name, "speeches": speeches, "raw":f"<li><strong>{topic}<br>{roleQ}</strong>{question}<br><strong>{roleA}</strong>{answer}</li>"})
             return topics
         elif self.pattern == "Pattern3":
             name = questioner.get("name", "")
@@ -126,97 +175,36 @@ class Setagaya2Parser(BaseMinuteParser):
             if not ul_match:
                 return []
             topics: List[Dict[str, str]] = []
-            for topic,speeches in re.findall(r"<li><strong>([\s\S]*?)</strong><br>([\s\S]*?)</li>",ul_match.group(1)):
-                li_block = f"<li><strong>{topic}</strong><br>{speeches}</li>"
-                topics.append({"name": name, "speeches": li_block})
+            for topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
+                speeches = [
+                    {
+                        "id":1,
+                        "mark":"○",
+                        "name": "議題",
+                        "role": "-",
+                        "raw": topic,
+                        "comment": topic
+                    },
+                    {
+                        "id": 2,
+                        "mark": "◆",
+                        "name": "質問者",
+                        "role": roleQ,
+                        "comment": question
+                    },
+                    {
+                        "id": 3,
+                        "mark": "◎",
+                        "name": "回答者",
+                        "role": roleA,
+                        "comment": answer
+                    },
+                ]
+                topics.append({"name": name, "speeches": speeches,"raw":f"<li><strong>{topic}</strong><br><strong>{roleQ}</strong>{question}<br><strong>{roleA}</strong>{answer}</li>"})
             return topics
         else:
             print('Pattern not implemented')
             return []
-
-    def divide_topic_pile_into_speeches(self, txt) -> List[Any]:
-        speeches = []
-        if self.pattern == "Pattern1":
-            topic, question, answer = re.findall(
-                r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>", txt
-            )[0]
-            speeches = [
-                {
-                    "id":1,
-                    "mark":"○",
-                    "name": "議題",
-                    "role": "-",
-                    "raw": topic,
-                    "comment": topic
-                },
-                {
-                    "id": 2,
-                    "mark": "◆",
-                    "name": "質問者",
-                    "role": "質問者",
-                    "comment": question
-                },
-                {
-                    "id": 3,
-                    "mark": "◎",
-                    "name": "回答者",
-                    "role": "回答者",
-                    "comment": answer
-                },
-            ]
-        elif self.pattern == "Pattern2":
-            topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",txt)[0]
-            speeches = [
-                {
-                    "id":1,
-                    "mark":"○",
-                    "name": "議題",
-                    "role": "-",
-                    "raw": topic,
-                    "comment": topic
-                },
-                {
-                    "id": 2,
-                    "mark": "◆",
-                    "name": "質問者",
-                    "role": roleQ,
-                    "comment": question
-                },
-                {
-                    "id": 3,
-                    "mark": "◎",
-                    "name": "回答者",
-                    "role": roleA,
-                    "comment": answer
-                },
-            ]
-        elif self.pattern == "Pattern3":
-            topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",txt)[0]
-            speeches = [
-                {
-                    "id":1,
-                    "mark":"○",
-                    "name": "議題",
-                    "role": "-",
-                    "raw": topic,
-                    "comment": topic
-                },
-                {
-                    "id": 2,
-                    "mark": "◆",
-                    "name": "質問者",
-                    "role": roleQ,
-                    "comment": question
-                },
-                {
-                    "id": 3,
-                    "mark": "◎",
-                    "name": "回答者",
-                    "role": roleA,
-                    "comment": answer
-                },
-            ]
-        return speeches
 
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
         """Generate QA combinations from parsed minute data."""
@@ -237,18 +225,14 @@ class Setagaya2Parser(BaseMinuteParser):
             "topics": [],
         }
         for questioner in self.divide_entire_minute_into_questioners(text):
-            for j, topic in enumerate(
-                self.divide_questioner_piles_into_topics(questioner), start=1
-            ):
+            for j, topic in enumerate(self.divide_questioner_piles_into_topics(questioner), start=1):
                 minute_json["topics"].append(
                     {
                         "topic_id": j,
                         "name": topic["name"],
-                        "raw": topic["speeches"],
-                        "speeches": self.divide_topic_pile_into_speeches(
-                            topic["speeches"]
-                        ),
+                        "raw": topic["raw"],
+                        "speeches": topic["speeches"]
                     }
                 )
-        # minute_json["QAs"] = self.generate_QA_combination(minute_json)
+        minute_json["QAs"] = self.generate_QA_combination(minute_json)
         return minute_json
