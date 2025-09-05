@@ -105,7 +105,7 @@ def save_QAs(minute,conn):
                         questioner = speech["name"]
                         break
                 if questioner == "":
-                    # Skip QA sequences with no question mark
+                    # Skip QA sequences with no questioner mark (◆)
                     continue
                 QA_text = json.dumps(QA,indent=4,ensure_ascii=False)
                 cur.execute(
