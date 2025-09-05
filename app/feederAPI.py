@@ -1,6 +1,6 @@
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
-from typing import List, Dict, Any
+from typing import List, Dict, Any, Tuple
 import sqlite3, random, json, csv, sys
 from pathlib import Path
 from anonymizer import Anonymizer
@@ -45,10 +45,14 @@ def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
         config = load(municipality)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
-    non_evaled_ids = extract_non_evaled_QA(data.evaled_ids, config)
-    if not non_evaled_ids:
+    non_evaled = extract_non_evaled_QA(data.evaled_ids, config)
+    if not non_evaled:
         return {"message": "全て評価済みです"}
-    target_id = random.choice(non_evaled_ids)
+    eval_counts = get_eval_counts(data.evaled_ids, config)
+    ids = [row[0] for row in non_evaled]
+    questioners = [row[1] for row in non_evaled]
+    weights = [1 / (eval_counts.get(q, 0) + 1) for q in questioners]
+    target_id = random.choices(ids, weights=weights, k=1)[0]
     qa = get_QA_by_id(target_id, config)
     return format_QA(qa, config)
 
@@ -90,17 +94,28 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     conn.close()
     return metas
 
-def extract_non_evaled_QA(evaled_ids: List[int], config: Dict[str, Any]) -> List[int]:
+def extract_non_evaled_QA(evaled_ids: List[int], config: Dict[str, Any]) -> List[Tuple[int, str]]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     if evaled_ids:
-        q = f"SELECT id FROM questions WHERE id NOT IN ({','.join(['?'] * len(evaled_ids))})"
+        q = f"SELECT id, questioner FROM questions WHERE id NOT IN ({','.join(['?'] * len(evaled_ids))})"
         cur.execute(q, evaled_ids)
     else:
-        cur.execute("SELECT id FROM questions")
-    ids = [row[0] for row in cur.fetchall()]
+        cur.execute("SELECT id, questioner FROM questions")
+    rows = cur.fetchall()
     conn.close()
-    return ids
+    return [(row[0], row[1]) for row in rows]
+
+def get_eval_counts(evaled_ids: List[int], config: Dict[str, Any]) -> Dict[str, int]:
+    if not evaled_ids:
+        return {}
+    conn = sqlite3.connect(config["db_path"])
+    cur = conn.cursor()
+    q = f"SELECT questioner, COUNT(*) FROM questions WHERE id IN ({','.join(['?'] * len(evaled_ids))}) GROUP BY questioner"
+    cur.execute(q, evaled_ids)
+    counts = {row[0]: row[1] for row in cur.fetchall()}
+    conn.close()
+    return counts
 
 def get_QA_by_id(qa_id: int, config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
