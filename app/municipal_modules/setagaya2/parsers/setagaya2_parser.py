@@ -102,7 +102,7 @@ class Setagaya2Parser(BaseMinuteParser):
             if not ul_match:
                 return []
             topics: List[Dict[str, Any]] = []
-            for topic, question, answer = re.findall(
+            for topic, question, answer in re.findall(
                 r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>", ul_match.group(1)
             ):
                 speeches = [
@@ -140,7 +140,7 @@ class Setagaya2Parser(BaseMinuteParser):
                 return []
             topics: List[Dict[str, Any]] = []
             
-            for topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
+            for topic, roleQ, question, roleA, answer in re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
                 speeches = [
                     {
                         "id":1,
@@ -175,7 +175,7 @@ class Setagaya2Parser(BaseMinuteParser):
             if not ul_match:
                 return []
             topics: List[Dict[str, str]] = []
-            for topic, roleQ, question, roleA, answer = re.findall(r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
+            for topic, roleQ, question, roleA, answer in re.findall(r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
                 speeches = [
                     {
                         "id":1,
