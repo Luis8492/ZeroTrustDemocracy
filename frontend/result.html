@@ -149,42 +149,56 @@
             container.textContent = '該当するQAがありません';
             return;
         }
-        const table = document.createElement('table');
-        const thead = document.createElement('thead');
-        const headerRow = document.createElement('tr');
-        ['議員', '政党', 'QA', '評価'].forEach(h => {
-            const th = document.createElement('th');
-            th.textContent = h;
-            headerRow.appendChild(th);
-        });
-        thead.appendChild(headerRow);
-        table.appendChild(thead);
-        const tbody = document.createElement('tbody');
         filtered.forEach(item => {
-            const tr = document.createElement('tr');
-            const qaText = document.createElement('td');
+            const table = document.createElement('table');
+            table.style.borderCollapse = 'collapse';
+            table.style.border = '1px solid black';
+            table.style.marginBottom = '1em';
+
+            const thead = document.createElement('thead');
+            const headerRow = document.createElement('tr');
+            ['項目', '内容'].forEach(h => {
+                const th = document.createElement('th');
+                th.textContent = h;
+                th.style.border = '1px solid black';
+                headerRow.appendChild(th);
+            });
+            thead.appendChild(headerRow);
+            table.appendChild(thead);
+
+            const tbody = document.createElement('tbody');
+
+            function addRow(label, value) {
+                const tr = document.createElement('tr');
+                const tdLabel = document.createElement('td');
+                tdLabel.textContent = label;
+                tdLabel.style.border = '1px solid black';
+                const tdValue = document.createElement('td');
+                if (value instanceof HTMLElement) {
+                    tdValue.appendChild(value);
+                } else {
+                    tdValue.textContent = value;
+                }
+                tdValue.style.border = '1px solid black';
+                tr.appendChild(tdLabel);
+                tr.appendChild(tdValue);
+                tbody.appendChild(tr);
+            }
+
+            addRow('議員', item.questioner || '');
+            addRow('政党', item.questioner_party || '');
+
+            const qaContainer = document.createElement('div');
             item.QA.forEach(q => {
                 const div = document.createElement('div');
-                div.textContent = q.comment;
-                qaText.appendChild(div);
+                div.textContent = (q.mark ? q.mark : '') + q.comment;
+                qaContainer.appendChild(div);
             });
-            const cells = [
-                item.questioner || '',
-                item.questioner_party || '',
-                qaText,
-                item.eval
-            ];
-            cells.forEach(c => {
-                const td = c instanceof HTMLElement ? c : document.createElement('td');
-                if (!(c instanceof HTMLElement)) {
-                    td.textContent = c;
-                }
-                tr.appendChild(td);
-            });
-            tbody.appendChild(tr);
+            addRow('QA', qaContainer);
+
+            table.appendChild(tbody);
+            container.appendChild(table);
         });
-        table.appendChild(tbody);
-        container.appendChild(table);
     }
 
     document.getElementById('export-csv').addEventListener('click', exportCSV);
