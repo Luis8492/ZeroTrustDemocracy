@@ -211,11 +211,7 @@ class Setagaya2Parser(BaseMinuteParser):
         minute_QAs: List[Any] = []
         for topic in minute.get("topics", []):
             speeches = topic.get("speeches", [])
-            if len(speeches) < 2:
-                continue
-            intro = [speeches[0]]
-            qa = speeches[1:]
-            minute_QAs.append([intro, qa])
+            minute_QAs.append(speeches)
         return minute_QAs
 
     def convert(self, text: str) -> Dict[str, Any]:
