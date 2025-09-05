@@ -77,7 +77,7 @@
 
     function renderChart(stats, canvasId, label) {
         const labels = stats.map(s => `${s.key} (回答数: ${s.count})`);
-        const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.std, yMax: s.mean + s.std, count: s.count }));
+        const data = stats.map(s => ({ y: s.mean, yMin: s.mean - s.ci, yMax: s.mean + s.ci, count: s.count }));
         const ctx = document.getElementById(canvasId).getContext('2d');
         new Chart(ctx, {
             type: 'barWithErrorBars',
