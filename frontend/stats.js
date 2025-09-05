@@ -10,10 +10,14 @@ export function computeGroupedStats(items, valueAccessor, keyAccessor) {
   });
   const stats = [];
   groups.forEach((values, key) => {
-    const mean = values.reduce((a, b) => a + b, 0) / values.length;
-    const variance = values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / values.length;
+    const n = values.length;
+    const mean = values.reduce((a, b) => a + b, 0) / n;
+    const variance = n > 1
+      ? values.reduce((sum, val) => sum + Math.pow(val - mean, 2), 0) / (n - 1)
+      : 0;
     const std = Math.sqrt(variance);
-    stats.push({ key, mean, std, count: values.length });
+    const ci = n > 1 ? 1.96 * (std / Math.sqrt(n)) : 0;
+    stats.push({ key, mean, ci, count: n });
   });
   stats.sort((a, b) => b.mean - a.mean);
   return stats;
