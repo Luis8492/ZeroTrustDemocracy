@@ -15,7 +15,7 @@
 - `raw_minutes/` - サンプル議事録テキスト
 - `municipal_modules/<municipality>/config/name-party-table.csv` - 氏名と所属政党の対応表
 
-## GET /api/qa/next へのレスポンス例
+## POST /api/qa/next へのレスポンス例
 ```json
 {
     "id": 253,
