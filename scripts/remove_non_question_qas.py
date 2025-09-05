@@ -11,7 +11,7 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def has_question_mark(qa_text: str) -> bool:
+def has_questioner_mark(qa_text: str) -> bool:
     """Return True if QA JSON contains a speech marked with '◆'."""
     try:
         qa = json.loads(qa_text)
@@ -34,14 +34,14 @@ def remove_non_question_qas(municipality: str = "setagaya") -> None:
     cur = conn.cursor()
     cur.execute("SELECT id, QA FROM questions")
     rows = cur.fetchall()
-    ids_to_delete = [row[0] for row in rows if not has_question_mark(row[1])]
+    ids_to_delete = [row[0] for row in rows if not has_questioner_mark(row[1])]
     if ids_to_delete:
         cur.executemany(
             "DELETE FROM questions WHERE id=?", [(i,) for i in ids_to_delete]
         )
         conn.commit()
     logger.info(
-        f"Deleted {len(ids_to_delete)} QA entries without question mark."
+        f"Deleted {len(ids_to_delete)} QA entries without questioner mark (◆)."
     )
     conn.close()
 
