@@ -93,118 +93,47 @@ class Setagaya2Parser(BaseMinuteParser):
             Each element has ``name`` (the questioner) and ``section`` (raw
             HTML for the topic ``<li>`` block).
         """
-
-        if self.pattern == "Pattern1":
-            name = questioner.get("name", "")
-            text = questioner.get("section", "")
-    
-            ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
-            if not ul_match:
-                return []
-            topics: List[Dict[str, Any]] = []
-            for topic, question, answer in re.findall(
-                r"<li>([\S\s]*?)<li>([\S\s]*?)<li>([\S\s]*?)</li>", ul_match.group(1)
-            ):
-                speeches = [
-                    {
-                        "id":1,
-                        "mark":"○",
-                        "name": "議題",
-                        "role": "-",
-                        "raw": topic,
-                        "comment": topic
-                    },
-                    {
-                        "id": 2,
-                        "mark": "◆",
-                        "name": "質問者",
-                        "role": "質問者",
-                        "comment": question
-                    },
-                    {
-                        "id": 3,
-                        "mark": "◎",
-                        "name": "回答者",
-                        "role": "回答者",
-                        "comment": answer
-                    },
-                ]
-                topics.append({"name": name, "speeches": speeches, "raw":f"<li>{topic}<li>{question}<li>{answer}</li>"})
-            return topics
-        elif self.pattern == "Pattern2":
-            name = questioner.get("name", "")
-            text = questioner.get("section", "")
-    
-            ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
-            if not ul_match:
-                return []
-            topics: List[Dict[str, Any]] = []
-            
-            for topic, roleQ, question, roleA, answer in re.findall(r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
-                speeches = [
-                    {
-                        "id":1,
-                        "mark":"○",
-                        "name": "議題",
-                        "role": "-",
-                        "raw": topic,
-                        "comment": topic
-                    },
-                    {
-                        "id": 2,
-                        "mark": "◆",
-                        "name": "質問者",
-                        "role": roleQ,
-                        "comment": question
-                    },
-                    {
-                        "id": 3,
-                        "mark": "◎",
-                        "name": "回答者",
-                        "role": roleA,
-                        "comment": answer
-                    },
-                ]
-                topics.append({"name": name, "speeches": speeches, "raw":f"<li><strong>{topic}<br>{roleQ}</strong>{question}<br><strong>{roleA}</strong>{answer}</li>"})
-            return topics
-        elif self.pattern == "Pattern3":
-            name = questioner.get("name", "")
-            text = questioner.get("section", "")
-    
-            ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
-            if not ul_match:
-                return []
-            topics: List[Dict[str, str]] = []
-            for topic, roleQ, question, roleA, answer in re.findall(r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",ul_match.group(1)):
-                speeches = [
-                    {
-                        "id":1,
-                        "mark":"○",
-                        "name": "議題",
-                        "role": "-",
-                        "raw": topic,
-                        "comment": topic
-                    },
-                    {
-                        "id": 2,
-                        "mark": "◆",
-                        "name": "質問者",
-                        "role": roleQ,
-                        "comment": question
-                    },
-                    {
-                        "id": 3,
-                        "mark": "◎",
-                        "name": "回答者",
-                        "role": roleA,
-                        "comment": answer
-                    },
-                ]
-                topics.append({"name": name, "speeches": speeches,"raw":f"<li><strong>{topic}</strong><br><strong>{roleQ}</strong>{question}<br><strong>{roleA}</strong>{answer}</li>"})
-            return topics
-        else:
-            print('Pattern not implemented')
+        name = questioner.get("name", "")
+        text = questioner.get("section", "")
+        ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
+        if not ul_match:
             return []
+        topics: List[Dict[str, Any]] = []
+        
+        patterns = {
+            "Pattern1": (
+                r"<li><strong>([\S\s]*?)</strong>[\s\S]*?"
+                r"<li><strong>([\S\s]*?)</strong>([\S\s]*?)</li>[\S\s]*?"
+                r"<li><strong>([\S\s]*?)</strong>([\S\s]*?)</li>",
+                "<li><strong>{}</strong><li><strong{}</strong>{}</li><li><strong>{}</strong>{}</li>"
+            ),
+            "Pattern2": (
+                r"<li><strong>([\s\S]*?)<br>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?"
+                r"<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",
+                "<li><strong>{}<br>{}</strong>{}<br><strong>{}</strong>{}</li>"
+            ),
+            "Pattern3": (
+                r"<li><strong>([\s\S]*?)</strong><br>[\s\S]*?"
+                r"<strong>([\s\S]*?)</strong>([\s\S]*?)<br>[\s\S]*?"
+                r"<strong>([\s\S]*?)</strong>([\s\S]*?)</li>",
+                "<li><strong>{}</strong><br><strong>{}</strong>{}<br><strong>{}</strong>{}</li>"
+            ),
+        }
+        pattern_regex, raw_format = patterns.get(self.pattern, (None, None))
+        if pattern_regex is None:
+            return topics  # or raise Exception
+        for topic, roleQ, question, roleA, answer in re.findall(pattern_regex, ul_match.group(1)):
+            speeches = [
+                {"id": 1, "mark": "○", "name": "議題", "role": "-", "raw": topic, "comment": topic},
+                {"id": 2, "mark": "◆", "name": "質問者", "role": roleQ, "comment": question},
+                {"id": 3, "mark": "◎", "name": "回答者", "role": roleA, "comment": answer},
+            ]
+            topics.append({
+                "name": name,
+                "speeches": speeches,
+                "raw": raw_format.format(topic, roleQ, question, roleA, answer)
+            })
+        return topics
 
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
         """Generate QA combinations from parsed minute data."""
