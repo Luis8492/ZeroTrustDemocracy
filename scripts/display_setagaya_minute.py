@@ -10,13 +10,15 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from app.minute_analyzer import convert_minute_txt_to_json
 from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
+from config_loader import load
 
 
 def main(file_name: str) -> None:
     """Parse the given raw minute file and print structured JSON."""
     file_path = Path("raw_minutes") / file_name
     print(file_path)
-    text = file_path.read_text(encoding="cp932")
+    encoding = load("setagaya").get("encoding", "cp932")
+    text = file_path.read_text(encoding=encoding)
     parser = SetagayaParser()
     minute = convert_minute_txt_to_json(text, parser)
     minute["file_name"] = file_name
