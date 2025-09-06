@@ -12,6 +12,7 @@ from app.municipal_modules.setagaya2.dev.pattern_classifier import classify_patt
 
 class Setagaya2Parser(BaseMinuteParser):
     """Parser for Setagaya regular session meeting minutes."""
+    FETCHER_NAME = "SetagayaRegularFetcher"
 
     def __init__(self) -> None:  # pragma: no cover - simple init
         self.pattern: str = "Unknown"

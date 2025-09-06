@@ -8,6 +8,7 @@ import time
 from playwright.sync_api import Playwright
 
 from app.municipal_modules.base import BaseMinuteFetcher
+from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
 from utils.logger import get_logger
 
 
@@ -17,7 +18,7 @@ logger = get_logger(__name__)
 class SetagayaFetcher(BaseMinuteFetcher):
     """Fetcher implementation for Setagaya municipal meeting minutes."""
 
-    FETCHER_NAME = "SetagayaCommitteeFetcher"
+    FETCHER_NAME = SetagayaParser.FETCHER_NAME
 
     def _set_search_setting_and_click_search(self, page) -> None:
         frame = page.frame(name="TOP")

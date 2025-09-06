@@ -14,6 +14,7 @@ logger = get_logger(__name__)
 
 class SetagayaParser(BaseMinuteParser):
     """Parser for Setagaya municipal meeting minutes."""
+    FETCHER_NAME = "SetagayaCommitteeFetcher"
 
     def extract_meeting_data(self, text: str) -> Dict[str, Any]:
         lines = text.splitlines()
