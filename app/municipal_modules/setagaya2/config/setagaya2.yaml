@@ -3,3 +3,4 @@ pii_files:
   - app/PIIs/partyNames.txt
 party_table_path: app/municipal_modules/setagaya2/config/name-party-table.csv
 fetch_url: https://www.city.setagaya.lg.jp/gikai/index.html
+encoding: utf-8
