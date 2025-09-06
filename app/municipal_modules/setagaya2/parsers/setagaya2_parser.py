@@ -139,9 +139,14 @@ class Setagaya2Parser(BaseMinuteParser):
         """Generate QA combinations from parsed minute data."""
         minute_QAs: List[Any] = []
         for topic in minute.get("topics", []):
-            speeches = topic.get("speeches", [])
-            minute_QAs.append(speeches)
+            QA_topic = []
+            intro_speeches = [topic["speeches"][0]]
+            qa_seq = [topic["speeches"][1],topic["speeches"][2]]
+            QA_topic.append(intro_speeches)
+            QA_topic.append(qa_seq)
+            minute_QAs.append(QA_topic)
         return minute_QAs
+
 
     def convert(self, text: str) -> Dict[str, Any]:
         """Convert raw minute text into structured data."""
