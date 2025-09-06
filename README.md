@@ -1,3 +1,7 @@
+# Todo
+setagaya2はUTF-8なので、setagayaのcp932と一致しない。保存時にエンコーディングを指定するか、configにエンコーディングを指定するか。
+setagaya2のparserの出力結果(QAセクション)がおかしい。
+
 # Zero Trust Democracy
 
 **ZeroTrustDemocracy**は、議会の議事録等のデータをより分かりやすい形でユーザーに提示することで、民主的な意思決定への市民参加を支援することを目的としています。
