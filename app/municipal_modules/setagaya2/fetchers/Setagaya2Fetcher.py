@@ -5,6 +5,7 @@ import urllib.parse
 from typing import Iterable
 
 from app.municipal_modules.base import BaseMinuteFetcher
+from app.municipal_modules.setagaya2.parsers.setagaya2_parser import Setagaya2Parser
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -13,7 +14,7 @@ logger = get_logger(__name__)
 class Setagaya2Fetcher(BaseMinuteFetcher):
     """Fetcher implementation for Setagaya regular session meeting minutes."""
 
-    FETCHER_NAME = "SetagayaRegularFetcher"
+    FETCHER_NAME = Setagaya2Parser.FETCHER_NAME
 
     def _navigate_to_results_page(self, page) -> None:
         """Navigate from the top page to the results listing page.
