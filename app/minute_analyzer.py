@@ -26,6 +26,7 @@ def analyze_unprocessed_minutes(
     if parser is None:
         parser = get_parser(municipality)
     config = load(municipality)
+    encoding = config.get("encoding", "cp932")
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     rows = query_not_analyzed_data(cur, fetcher_name)
@@ -36,7 +37,7 @@ def analyze_unprocessed_minutes(
             logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
             continue
         try:
-            minute_json = analyze_minute(file_path, parser)
+            minute_json = analyze_minute(file_path, parser, encoding=encoding)
             save_minute_to_db(minute_json, conn)
             update_analyzed_status(conn, cur, minute_id)
         except Exception as e:
@@ -54,8 +55,10 @@ def query_not_analyzed_data(cur, fetcher_name: str):
     return cur.fetchall()
 
 
-def analyze_minute(file_path: str, parser: BaseMinuteParser) -> dict:
-    minute_text = open(file_path, "r", encoding="cp932", errors="replace").read()
+def analyze_minute(
+    file_path: str, parser: BaseMinuteParser, *, encoding: str = "cp932"
+) -> dict:
+    minute_text = Path(file_path).read_text(encoding=encoding, errors="replace")
     minute_json = parser.convert(minute_text)
     minute_json["file_name"] = file_path.split("/")[-1]
     return minute_json

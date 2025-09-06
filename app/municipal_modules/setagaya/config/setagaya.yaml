@@ -3,3 +3,4 @@ pii_files:
   - app/PIIs/partyNames.txt
 party_table_path: app/municipal_modules/setagaya/config/name-party-table.csv
 fetch_url: https://kugi.city.setagaya.tokyo.jp/voices/
+encoding: cp932
