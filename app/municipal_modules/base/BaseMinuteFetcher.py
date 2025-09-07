@@ -23,7 +23,7 @@ class BaseMinuteFetcher(ABC):
         context = browser.new_context()
         page = context.new_page()
         page.goto(self.config["fetch_url"])
-        urls = self.extract_minutes_urls(page)
+        urls = self.extract_minutes_urls(page, conn)
         for url in urls:
             self.download_new_minutes(conn, context, url)
         conn.close()
@@ -59,7 +59,7 @@ ON CONFLICT(url) DO UPDATE SET
         conn.commit()
 
     @abstractmethod
-    def extract_minutes_urls(self, page) -> list[str]:
+    def extract_minutes_urls(self, page, conn: sqlite3.Connection | None = None):
         pass
 
     @abstractmethod
