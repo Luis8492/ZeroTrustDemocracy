@@ -18,6 +18,9 @@ from pathlib import Path
 from typing import Dict, Type
 
 from .base.base_minute_parser import BaseMinuteParser
+from utils.logger import get_logger
+
+logger = get_logger(__name__)
 
 
 def load_parsers() -> Dict[str, Type[BaseMinuteParser]]:
@@ -42,12 +45,26 @@ def load_parsers() -> Dict[str, Type[BaseMinuteParser]]:
         except ModuleNotFoundError:
             # Municipality package without parsers submodule
             continue
+        except Exception as exc:  # pragma: no cover - unexpected import issues
+            logger.warning(
+                "Failed to import parsers package for %s: %s", name, exc
+            )
+            continue
 
         # Inspect each module inside the parsers package
         for _, mod_name, _ in pkgutil.iter_modules(parsers_pkg.__path__):
-            module = importlib.import_module(
-                f"{__name__}.{name}.parsers.{mod_name}"
-            )
+            try:
+                module = importlib.import_module(
+                    f"{__name__}.{name}.parsers.{mod_name}"
+                )
+            except Exception as exc:  # pragma: no cover - import failures
+                logger.warning(
+                    "Failed to import parser module %s for %s: %s",
+                    mod_name,
+                    name,
+                    exc,
+                )
+                continue
             for obj_name, obj in inspect.getmembers(module, inspect.isclass):
                 if issubclass(obj, BaseMinuteParser) and obj is not BaseMinuteParser:
                     parser_classes[name] = obj

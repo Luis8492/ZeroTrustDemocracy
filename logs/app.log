@@ -1664,3 +1664,4 @@
 2025-09-04 17:28:03,874 - ERROR - __main__ - [ERROR] 分析失敗（ID=108）: Unknown state transition.(start>?)[◆]
 2025-09-04 17:28:03,875 - ERROR - __main__ - [ERROR] 分析失敗（ID=121）: list index out of range
 2025-09-04 17:28:03,884 - ERROR - __main__ - [ERROR] 分析失敗（ID=128）: list index out of range
+2025-09-07 01:46:54,489 - WARNING - app.municipal_modules - Failed to import parser module bad_parser for broken: boom
