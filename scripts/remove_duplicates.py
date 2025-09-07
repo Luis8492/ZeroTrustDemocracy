@@ -22,6 +22,7 @@ def remove_duplicates(db_path: Path = DB_PATH) -> None:
     tables: Dict[str, List[str]] = {
         "minutes": ["url", "file_name", "analyzed"],
         "meetings": ["file_name", "date", "name"],
+        "downloaded_minutes_url_helper": ["url"],
         "questions": ["file_name", "topic_intro", "QA", "questioner"],
     }
 
