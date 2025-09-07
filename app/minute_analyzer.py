@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import argparse
 import sqlite3
 import os
 import json
@@ -10,20 +11,25 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
-from app.municipal_modules.setagaya.parsers.setagaya_parser import SetagayaParser
+from app.municipal_modules import load_parsers
 from config_loader import load
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
+# Load parser classes available in municipal_modules
+PARSER_CLASSES = load_parsers()
+
 
 def analyze_unprocessed_minutes(
-    municipality: str = "setagaya",
+    municipality: str,
     parser: BaseMinuteParser | None = None,
-    fetcher_name: str = SetagayaParser.FETCHER_NAME,
+    fetcher_name: str | None = None,
 ):
     if parser is None:
         parser = get_parser(municipality)
+    if fetcher_name is None:
+        fetcher_name = getattr(parser, "FETCHER_NAME")
     config = load(municipality)
     encoding = config.get("encoding", "cp932")
     conn = sqlite3.connect(config["db_path"])
@@ -64,9 +70,10 @@ def analyze_minute(
 
 
 def get_parser(municipality: str) -> BaseMinuteParser:
-    if municipality == "setagaya":
-        return SetagayaParser()
-    raise ValueError(f"Unsupported municipality: {municipality}")
+    parser_cls = PARSER_CLASSES.get(municipality)
+    if parser_cls is None:
+        raise ValueError(f"Unsupported municipality: {municipality}")
+    return parser_cls()
 
 def update_analyzed_status(conn,cur,minute_id):
     cur.execute(
@@ -117,5 +124,24 @@ def save_QAs(minute,conn):
     conn.commit()
 
 
+def main() -> None:
+    parser = argparse.ArgumentParser(
+        description="Analyze unprocessed minutes for municipalities"
+    )
+    parser.add_argument(
+        "--municipality",
+        nargs="*",
+        help="Target municipality(ies). If omitted, all available municipalities are processed.",
+    )
+    args = parser.parse_args()
+
+    municipalities = args.municipality or list(PARSER_CLASSES.keys())
+    for muni in municipalities:
+        parser_cls = PARSER_CLASSES.get(muni)
+        if parser_cls is None:
+            raise ValueError(f"Unsupported municipality: {muni}")
+        analyze_unprocessed_minutes(muni, parser_cls(), parser_cls.FETCHER_NAME)
+
+
 if __name__ == "__main__":
-    analyze_unprocessed_minutes(fetcher_name=SetagayaParser.FETCHER_NAME)
+    main()
