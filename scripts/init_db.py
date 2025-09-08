@@ -35,6 +35,14 @@ CREATE TABLE IF NOT EXISTS meetings (
     )
     cur.execute(
         """
+CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
+    id INTEGER PRIMARY KEY AUTOINCREMENT,
+    url TEXT UNIQUE
+)
+"""
+    )
+    cur.execute(
+        """
 CREATE TABLE IF NOT EXISTS questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_name TEXT,
