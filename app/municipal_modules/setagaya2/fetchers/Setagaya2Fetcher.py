@@ -74,7 +74,20 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
 
         return session_map
 
+    def _ensure_helper_table(self, conn: sqlite3.Connection) -> None:
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT UNIQUE
+            )
+            """
+        )
+        conn.commit()
+
     def is_parent_url_processed(self, conn: sqlite3.Connection, url: str) -> bool:
+        self._ensure_helper_table(conn)
         cur = conn.cursor()
         cur.execute(
             "SELECT 1 FROM downloaded_minutes_url_helper WHERE url = ?", (url,)
@@ -82,6 +95,7 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
         return cur.fetchone() is not None
 
     def mark_parent_url_processed(self, conn: sqlite3.Connection, url: str) -> None:
+        self._ensure_helper_table(conn)
         cur = conn.cursor()
         cur.execute(
             "INSERT OR IGNORE INTO downloaded_minutes_url_helper (url) VALUES (?)",
