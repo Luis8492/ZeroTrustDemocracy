@@ -94,7 +94,7 @@ class Setagaya2Parser(BaseMinuteParser):
             Each element has ``name`` (the questioner) and ``section`` (raw
             HTML for the topic ``<li>`` block).
         """
-        name = questioner.get("name", "")
+        questioner_name = questioner.get("name", "")
         text = questioner.get("section", "")
         ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
         if not ul_match:
@@ -126,11 +126,11 @@ class Setagaya2Parser(BaseMinuteParser):
         for topic, roleQ, question, roleA, answer in re.findall(pattern_regex, ul_match.group(1)):
             speeches = [
                 {"id": 1, "mark": "○", "name": "議題", "role": "-", "raw": topic, "comment": topic},
-                {"id": 2, "mark": "◆", "name": name, "role": roleQ, "comment": question},
+                {"id": 2, "mark": "◆", "name": questioner_name, "role": roleQ, "comment": question},
                 {"id": 3, "mark": "◎", "name": "回答者", "role": roleA, "comment": answer},
             ]
             topics.append({
-                "name": name,
+                "name": questioner_name,
                 "speeches": speeches,
                 "raw": raw_format.format(topic, roleQ, question, roleA, answer)
             })
