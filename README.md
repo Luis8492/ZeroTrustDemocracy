@@ -109,4 +109,4 @@ python3 -m http.server 8001
 python scripts/init_db.py setagaya2
 ```
 
-`scripts/init_db.py` は `minutes`, `meetings`, `questions` などのテーブルを生成します。
+`scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成します。

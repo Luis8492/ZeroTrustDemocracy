@@ -30,7 +30,7 @@ class SetagayaFetcher(BaseMinuteFetcher):
         frame.get_by_role("button", name="検索実行").click()
         time.sleep(2)
 
-    def extract_minutes_urls(self, page):
+    def extract_minutes_urls(self, page, conn=None):
         self._set_search_setting_and_click_search(page)
         frame = page.frame(name="BOTTOM")
         if not frame:
