@@ -135,7 +135,13 @@ class Setagaya2Parser(BaseMinuteParser):
                 "raw": raw_format.format(topic, roleQ, question, roleA, answer)
             })
         return topics
-
+    def questioner_name_clearner(self,questioner_name:str) -> str:
+        cleaned_name = questioner_name
+        # delete "（*）"
+        # delete "議員"
+        # delete any names in partyname
+        return cleaned_name
+    
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
         """Generate QA combinations from parsed minute data."""
         minute_QAs: List[Any] = []
