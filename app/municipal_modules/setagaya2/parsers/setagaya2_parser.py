@@ -126,7 +126,7 @@ class Setagaya2Parser(BaseMinuteParser):
         for topic, roleQ, question, roleA, answer in re.findall(pattern_regex, ul_match.group(1)):
             speeches = [
                 {"id": 1, "mark": "○", "name": "議題", "role": "-", "raw": topic, "comment": topic},
-                {"id": 2, "mark": "◆", "name": "質問者", "role": roleQ, "comment": question},
+                {"id": 2, "mark": "◆", "name": name, "role": roleQ, "comment": question},
                 {"id": 3, "mark": "◎", "name": "回答者", "role": roleA, "comment": answer},
             ]
             topics.append({
