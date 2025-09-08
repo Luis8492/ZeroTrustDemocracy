@@ -1,6 +1,5 @@
 # ToDo
 - 「同一議題のほかの質問を表示」機能を追加
-- setagaya2のname要素を議員名と候補者名に分ける関数を作成
 
 # Zero Trust Democracy
 
