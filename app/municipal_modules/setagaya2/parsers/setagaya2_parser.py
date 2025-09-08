@@ -94,7 +94,7 @@ class Setagaya2Parser(BaseMinuteParser):
             Each element has ``name`` (the questioner) and ``section`` (raw
             HTML for the topic ``<li>`` block).
         """
-        questioner_name = questioner.get("name", "")
+        questioner_name = questioner_name_clearner(questioner.get("name", ""))
         text = questioner.get("section", "")
         ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
         if not ul_match:
@@ -139,7 +139,7 @@ class Setagaya2Parser(BaseMinuteParser):
         cleaned_name = questioner_name
         # delete "（*）"
         # delete "議員"
-        # delete any names in partyname
+        # delete any names in partyname and surrounding space(s)
         return cleaned_name
     
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
