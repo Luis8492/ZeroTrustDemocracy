@@ -2,12 +2,24 @@
 
 from __future__ import annotations
 
+import csv
 import html
 import re
+from pathlib import Path
 from typing import Any, Dict, List
 
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 from app.municipal_modules.setagaya2.dev.pattern_classifier import classify_pattern
+
+# Load party names once at import time to avoid repeated file I/O
+_PARTY_NAMES: List[str]
+_party_path = Path(__file__).resolve().parents[1] / "config" / "party_names.csv"
+try:
+    with _party_path.open(encoding="utf-8", newline="") as f:
+        reader = csv.DictReader(f)
+        _PARTY_NAMES = [row["partyname"].strip() for row in reader if row.get("partyname")]
+except FileNotFoundError:  # pragma: no cover - defensive programming
+    _PARTY_NAMES = []
 
 
 class Setagaya2Parser(BaseMinuteParser):
@@ -94,7 +106,7 @@ class Setagaya2Parser(BaseMinuteParser):
             Each element has ``name`` (the questioner) and ``section`` (raw
             HTML for the topic ``<li>`` block).
         """
-        questioner_name = questioner_name_clearner(questioner.get("name", ""))
+        questioner_name = self.questioner_name_clearner(questioner.get("name", ""))
         text = questioner.get("section", "")
         ul_match = re.search(r"<ul>([\s\S]*)</ul>", text)
         if not ul_match:
@@ -135,12 +147,17 @@ class Setagaya2Parser(BaseMinuteParser):
                 "raw": raw_format.format(topic, roleQ, question, roleA, answer)
             })
         return topics
-    def questioner_name_clearner(self,questioner_name:str) -> str:
+    def questioner_name_clearner(self, questioner_name: str) -> str:
         cleaned_name = questioner_name
         # delete "（*）"
+        cleaned_name = re.sub(r"（[^）]*）", "", cleaned_name)
         # delete "議員"
+        cleaned_name = cleaned_name.replace("議員", "")
         # delete any names in partyname and surrounding space(s)
-        return cleaned_name
+        for party in _PARTY_NAMES:
+            cleaned_name = re.sub(rf"\s*{re.escape(party)}\s*", "", cleaned_name)
+        cleaned_name = re.sub(r"\s+", " ", cleaned_name)
+        return cleaned_name.strip()
     
     def generate_QA_combination(self, minute: Dict[str, Any]) -> List[Any]:
         """Generate QA combinations from parsed minute data."""
