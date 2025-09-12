@@ -91,10 +91,12 @@ def save_meta_info(minute, conn):
     file_name = minute["file_name"]
     date = minute["meeting"]["date"]
     name = minute["meeting"]["name"]
+    participants = minute["meeting"].get("participants", [])
+    participants_text = json.dumps(participants, ensure_ascii=False)
     cur = conn.cursor()
     cur.execute(
-        "INSERT OR IGNORE INTO meetings (file_name, date, name) VALUES (?, ?, ?)",
-        (file_name,date,name)
+        "INSERT OR IGNORE INTO meetings (file_name, date, name, participants) VALUES (?, ?, ?, ?)",
+        (file_name, date, name, participants_text)
     )
     conn.commit()
 
