@@ -32,6 +32,16 @@ python scripts/add_fetcher_column.py [municipality]
 ```
 `municipality` を省略した場合は `setagaya` が使用されます。
 
+## add_participants_column.py
+
+`meetings` テーブルに `participants` 列を追加し、既存の議事録を解析して参加者リストを埋めます。
+
+### 使い方
+```bash
+python scripts/add_participants_column.py [municipality]
+```
+`municipality` を省略した場合は `setagaya` が使用されます。
+
 ## remove_non_question_qas.py
 
 設定ファイルに基づいて SQLite データベースから質問になっていない QA を削除します。
