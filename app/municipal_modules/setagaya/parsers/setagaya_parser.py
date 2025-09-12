@@ -18,17 +18,44 @@ class SetagayaParser(BaseMinuteParser):
 
     def extract_meeting_data(self, text: str) -> Dict[str, Any]:
         lines = text.splitlines()
+        date = None
+        meeting_name = None
         for line in lines:
-            match = re.match(r"^\[\s*令和\s*(\d+)\s*年\s*(\d+)月\s*(.+?)－(\d+)月(\d+)日-(\d+)号", line)
+            match = re.match(
+                r"^\[\s*令和\s*(\d+)\s*年\s*(\d+)月\s*(.+?)－(\d+)月(\d+)日-(\d+)号",
+                line,
+            )
             if match:
                 era_year = int(match.group(1))
                 month = int(match.group(2))
-                name = match.group(3).strip()
+                meeting_name = match.group(3).strip()
                 western_year = 2018 + era_year  # 令和元年 = 2019年
                 day_month = f"{match.group(4)}月{match.group(5)}日{match.group(6)}号"
                 date = f"{western_year}年{day_month}"
-                return {"date": date, "name": name}
-        raise ValueError("会議名と日付の行が見つかりませんでした")
+                break
+        if date is None or meeting_name is None:
+            raise ValueError("会議名と日付の行が見つかりませんでした")
+
+        participants: List[str] = []
+        collecting = False
+        for line in lines:
+            stripped = line.strip()
+            if not collecting and "出席委員" in stripped:
+                collecting = True
+                continue
+            if collecting:
+                if (
+                    stripped.startswith("事務局職員")
+                    or stripped.startswith("出席説明員")
+                    or stripped.startswith("◇")
+                ):
+                    break
+                name_part = re.sub(r"^[^\s　]+[\s　]+", "", stripped)
+                participant_name = re.sub(r"[\s　]+", "", name_part)
+                if participant_name:
+                    participants.append(participant_name)
+
+        return {"date": date, "name": meeting_name, "participants": participants}
 
     def extract_topic_section(self, text: str) -> List[str]:
         parts = re.split(r"^\s*━{10,}\s*$", text, flags=re.MULTILINE)

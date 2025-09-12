@@ -29,7 +29,8 @@ CREATE TABLE IF NOT EXISTS meetings (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
     file_name TEXT,
     date TEXT,
-    name TEXT
+    name TEXT,
+    participants TEXT
 )
 """
     )
