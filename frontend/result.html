@@ -234,8 +234,12 @@
         for (const line of lines) {
             const [QA_id, evalStr] = line.split(',');
             if (QA_id) {
+                const qaIdNum = Number(QA_id);
+                if (Number.isNaN(qaIdNum)) {
+                    continue;
+                }
                 const evalNum = parseFloat(evalStr);
-                await saveEvaluation({ QA_id, eval: evalNum });
+                await saveEvaluation({ QA_id: qaIdNum, eval: evalNum });
             }
         }
         showResults();
