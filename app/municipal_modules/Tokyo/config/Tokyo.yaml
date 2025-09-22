@@ -1,0 +1,2 @@
+db_path: db/tokyo.db
+fetch_url: https://www.gikai.metro.tokyo.lg.jp/netreport/
