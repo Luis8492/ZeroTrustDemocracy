@@ -8,12 +8,14 @@ from playwright.sync_api import sync_playwright
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 # Fetchers are organized under `municipal_modules/<municipality>/fetchers`
+from municipal_modules.Tokyo.fetchers import TokyoNetReportFetcher
 from municipal_modules.setagaya.fetchers import SetagayaFetcher
 from municipal_modules.setagaya2.fetchers import Setagaya2Fetcher
 
 FETCHERS = {
     "setagaya": SetagayaFetcher,
     "setagaya2": Setagaya2Fetcher,
+    "Tokyo": TokyoNetReportFetcher,
 }
 
 
