@@ -33,6 +33,45 @@ class _HrefCollector(HTMLParser):
                 self.hrefs.append(value)
 
 
+class _AnchorCollector(HTMLParser):
+    """HTML parser to collect anchor ``href`` and visible text."""
+
+    def __init__(self) -> None:
+        super().__init__()
+        self.links: list[tuple[str, str]] = []
+        self._in_anchor = False
+        self._current_href: str | None = None
+        self._text_parts: list[str] = []
+
+    def handle_starttag(self, tag: str, attrs: list[tuple[str, str | None]]) -> None:  # type: ignore[override]
+        if tag.lower() != "a":
+            return
+        href: str | None = None
+        for attr, value in attrs:
+            if attr.lower() == "href" and value:
+                href = value
+                break
+        if href is None:
+            return
+        self._in_anchor = True
+        self._current_href = href
+        self._text_parts = []
+
+    def handle_endtag(self, tag: str) -> None:  # type: ignore[override]
+        if tag.lower() != "a" or not self._in_anchor:
+            return
+        text = "".join(self._text_parts).strip()
+        if self._current_href:
+            self.links.append((self._current_href, text))
+        self._in_anchor = False
+        self._current_href = None
+        self._text_parts = []
+
+    def handle_data(self, data: str) -> None:  # type: ignore[override]
+        if self._in_anchor:
+            self._text_parts.append(data)
+
+
 class TokyoNetReportFetcher(BaseMinuteFetcher):
     """Fetcher implementation for the Tokyo Metropolitan Assembly net report."""
 
@@ -69,10 +108,13 @@ class TokyoNetReportFetcher(BaseMinuteFetcher):
         seen_members: set[str] = set()
         for year_url in year_links:
             logger.info("[TOKYO] Processing session page: %s", year_url)
-            for member_url in self._collect_member_links(context, year_url):
-                if member_url not in seen_members:
-                    seen_members.add(member_url)
-                    member_urls.append(member_url)
+            for member_url, label in self._collect_member_links(context, year_url):
+                if member_url in seen_members:
+                    continue
+                seen_members.add(member_url)
+                member_urls.append(member_url)
+                if conn is not None:
+                    self._record_member_metadata(conn, member_url, label, year_url)
         return member_urls
 
     def download_new_minutes(self, conn, context, url: str) -> None:  # type: ignore[override]
@@ -109,7 +151,7 @@ class TokyoNetReportFetcher(BaseMinuteFetcher):
                 year_links.append(absolute)
         return self._deduplicate(year_links), self._deduplicate(archive_links)
 
-    def _collect_member_links(self, context, year_url: str) -> Sequence[str]:
+    def _collect_member_links(self, context, year_url: str) -> Sequence[tuple[str, str]]:
         session_page = context.new_page()
         try:
             session_page.goto(year_url)
@@ -119,20 +161,49 @@ class TokyoNetReportFetcher(BaseMinuteFetcher):
             session_page.close()
         return self._parse_member_links(year_url, html)
 
-    def _parse_member_links(self, page_url: str, html: str) -> list[str]:
-        collector = _HrefCollector()
+    def _parse_member_links(self, page_url: str, html: str) -> list[tuple[str, str]]:
+        collector = _AnchorCollector()
         collector.feed(html)
 
-        member_links: list[str] = []
-        for href in collector.hrefs:
+        member_links: list[tuple[str, str]] = []
+        seen: set[str] = set()
+        for href, text in collector.links:
             if not href or href.startswith("#"):
                 continue
             absolute = urljoin(page_url, href)
             if not self._is_member_link(absolute):
                 continue
-            if absolute not in member_links:
-                member_links.append(absolute)
+            if absolute in seen:
+                continue
+            seen.add(absolute)
+            member_links.append((absolute, text.strip()))
         return member_links
+
+    def _record_member_metadata(
+        self, conn, member_url: str, label: str, session_url: str
+    ) -> None:
+        label_text = label.strip()
+        metadata: dict[str, str] = {"session_page_url": session_url}
+        if label_text:
+            metadata["questioner_display"] = label_text
+            metadata.update(self._parse_questioner_label(label_text))
+        self.upsert_helper_metadata(conn, member_url, metadata)
+
+    @staticmethod
+    def _parse_questioner_label(label: str) -> dict[str, str]:
+        info: dict[str, str] = {}
+        text = label.strip()
+        if not text:
+            return info
+        match = re.match(r"^(?P<name>[^（]+)（(?P<party>.+)）$", text)
+        if match:
+            info["questioner_name"] = match.group("name").strip()
+            party = match.group("party").strip()
+            if party:
+                info["questioner_party"] = party
+        else:
+            info["questioner_name"] = text
+        return info
 
     def _save_minute_html(self, url: str, content: str) -> str:
         parsed = urlparse(url)

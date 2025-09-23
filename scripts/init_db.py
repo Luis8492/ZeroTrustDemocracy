@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS meetings (
         """
 CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
-    url TEXT UNIQUE
+    url TEXT UNIQUE,
+    metadata TEXT
 )
 """
     )
