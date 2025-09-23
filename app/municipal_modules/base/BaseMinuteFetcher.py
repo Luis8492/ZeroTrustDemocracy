@@ -7,6 +7,10 @@ from pathlib import Path
 from typing import Any
 
 from config_loader import load
+from utils.logger import get_logger
+
+
+logger = get_logger(__name__)
 
 
 class BaseMinuteFetcher(ABC):
@@ -92,6 +96,11 @@ ON CONFLICT(url) DO UPDATE SET
         self._ensure_helper_table(conn)
         metadata_json = (
             json.dumps(metadata, ensure_ascii=False) if metadata is not None else None
+        )
+        logger.info(
+            "[HELPER][UPSERT] url=%s metadata=%s",
+            url,
+            metadata if metadata is not None else "<none>",
         )
         cur = conn.cursor()
         cur.execute(
