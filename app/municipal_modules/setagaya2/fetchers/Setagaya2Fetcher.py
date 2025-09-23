@@ -80,10 +80,19 @@ class Setagaya2Fetcher(BaseMinuteFetcher):
             """
             CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
-                url TEXT UNIQUE
+                url TEXT UNIQUE,
+                metadata TEXT
             )
             """
         )
+        columns = {
+            row[1]
+            for row in cur.execute("PRAGMA table_info(downloaded_minutes_url_helper)")
+        }
+        if "metadata" not in columns:
+            cur.execute(
+                "ALTER TABLE downloaded_minutes_url_helper ADD COLUMN metadata TEXT"
+            )
         conn.commit()
 
     def is_parent_url_processed(self, conn: sqlite3.Connection, url: str) -> bool:
