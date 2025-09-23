@@ -1,8 +1,10 @@
 """Base classes for downloading municipal meeting minutes."""
 
+import json
 import sqlite3
 from abc import ABC, abstractmethod
 from pathlib import Path
+from typing import Any
 
 from config_loader import load
 
@@ -57,6 +59,61 @@ ON CONFLICT(url) DO UPDATE SET
             (url, Path(file_path).name, fetcher_name),
         )
         conn.commit()
+
+    # ------------------------------------------------------------------
+    # Helper table utilities
+    # ------------------------------------------------------------------
+
+    def _ensure_helper_table(self, conn: sqlite3.Connection) -> None:
+        """Create the helper table if it does not exist and ensure columns."""
+
+        cur = conn.cursor()
+        cur.execute(
+            """
+            CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                url TEXT UNIQUE,
+                metadata TEXT
+            )
+            """
+        )
+        columns = {row[1] for row in cur.execute("PRAGMA table_info(downloaded_minutes_url_helper)")}
+        if "metadata" not in columns:
+            cur.execute(
+                "ALTER TABLE downloaded_minutes_url_helper ADD COLUMN metadata TEXT"
+            )
+        conn.commit()
+
+    def upsert_helper_metadata(
+        self, conn: sqlite3.Connection, url: str, metadata: dict[str, Any] | None
+    ) -> None:
+        """Insert or update helper metadata for a downloaded minute URL."""
+
+        self._ensure_helper_table(conn)
+        metadata_json = (
+            json.dumps(metadata, ensure_ascii=False) if metadata is not None else None
+        )
+        cur = conn.cursor()
+        cur.execute(
+            """
+            INSERT INTO downloaded_minutes_url_helper (url, metadata)
+            VALUES (?, ?)
+            ON CONFLICT(url) DO UPDATE SET metadata=excluded.metadata
+            """,
+            (url, metadata_json),
+        )
+        conn.commit()
+
+    def is_helper_url_recorded(self, conn: sqlite3.Connection, url: str) -> bool:
+        """Check whether the helper table already contains ``url``."""
+
+        self._ensure_helper_table(conn)
+        cur = conn.cursor()
+        cur.execute(
+            "SELECT 1 FROM downloaded_minutes_url_helper WHERE url = ?",
+            (url,),
+        )
+        return cur.fetchone() is not None
 
     @abstractmethod
     def extract_minutes_urls(self, page, conn: sqlite3.Connection | None = None):
