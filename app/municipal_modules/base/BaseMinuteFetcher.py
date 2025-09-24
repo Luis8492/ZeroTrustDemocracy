@@ -7,6 +7,7 @@ from pathlib import Path
 from typing import Any
 
 from config_loader import load
+from utils.db import ensure_schema
 from utils.logger import get_logger
 
 
@@ -25,6 +26,7 @@ class BaseMinuteFetcher(ABC):
     def run(self) -> None:
         self._prepare_os_directories()
         conn = sqlite3.connect(self.config["db_path"])
+        ensure_schema(conn)
         browser = self.playwright.chromium.launch(headless=False)
         context = browser.new_context()
         page = context.new_page()
