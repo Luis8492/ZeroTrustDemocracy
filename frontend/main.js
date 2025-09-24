@@ -1,7 +1,7 @@
 import { fetchNextQA, fetchMetaData } from './api.js';
 import { listEvaluatedIDs, saveEvaluation } from './db.js'; // IndexedDB 側から取得
 
-const MUNICIPALITY = "setagaya";
+const MUNICIPALITY = "Tokyo";
 
 var qa_id;
 
