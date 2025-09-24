@@ -1,4 +1,4 @@
-../bin/python3 app/fetch.py --municipality setagaya;
+../bin/python3 app/fetch.py --municipality Tokyo;
 
 cd app;
 ../../bin/python3 minute_analyzer.py;
