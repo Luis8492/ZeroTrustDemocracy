@@ -1,7 +1,7 @@
 from fastapi import FastAPI, Query, HTTPException
 from pydantic import BaseModel
 from typing import List, Dict, Any, Tuple
-import sqlite3, random, json, csv, sys
+import sqlite3, random, json, re, sys
 from pathlib import Path
 from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
@@ -19,8 +19,36 @@ def validate_municipality(name: str) -> str:
 
 
 def load_party_table(path: str) -> Dict[str, str]:
+    import csv
+
     with open(path, encoding="utf-8") as f:
         return {"".join(row["Name"].split()): row["Party"] for row in csv.DictReader(f)}
+
+
+def party_from_metadata(metadata: str | None, questioner: str) -> str:
+    if not metadata:
+        return ""
+    try:
+        data = json.loads(metadata)
+    except json.JSONDecodeError:
+        return ""
+
+    party = (data or {}).get("questioner_party")
+    if party:
+        recorded_name = (data or {}).get("questioner_name")
+        if not recorded_name or _normalize_name(recorded_name) == _normalize_name(questioner):
+            return party
+
+    display = (data or {}).get("questioner_display")
+    if isinstance(display, str):
+        match = re.match(r"(?P<name>[^（]+)（(?P<party>.+)）", display)
+        if match:
+            return match.group("party").strip()
+    return ""
+
+
+def _normalize_name(name: str) -> str:
+    return "".join(name.split())
 
 
 global_config = load_global()
@@ -66,25 +94,34 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("Tokyo")):
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
 
-    party_table = load_party_table(config["party_table_path"])
+    party_table: Dict[str, str] = {}
+    party_table_path = config.get("party_table_path")
+    if party_table_path:
+        party_table = load_party_table(party_table_path)
 
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
-        SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date
+        SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date, helper.metadata
         FROM questions q
         JOIN meetings m ON q.file_name = m.file_name
+        LEFT JOIN minutes mi ON q.file_name = mi.file_name
+        LEFT JOIN downloaded_minutes_url_helper helper ON mi.url = helper.url
         WHERE q.id IN ({','.join('?' for _ in data.evaled_ids)})
     """
     cur.execute(query, data.evaled_ids)
     metas = []
     for row in cur.fetchall():
         questioner = row[1]
+        metadata = row[6]
+        party = party_table.get(questioner, "") if party_table else ""
+        if not party:
+            party = party_from_metadata(metadata, questioner)
         metas.append(
             {
                 "id": row[0],
                 "questioner": questioner,
-                "questioner_party": party_table.get(questioner, ""),
+                "questioner_party": party,
                 "topic_intro": json.loads(row[2]),
                 "QA": json.loads(row[3]),
                 "committee_name": row[4],
