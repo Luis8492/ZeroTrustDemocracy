@@ -1,7 +1,6 @@
-- 議事録：本会議ネットリポート(https://www.gikai.metro.tokyo.lg.jp/netreport/) というページが本会議の質疑についてはわかりやすい。
-  - 会議(e.g. https://www.gikai.metro.tokyo.lg.jp/netreport/2025/report04/)
-    - 議員(e.g. https://www.gikai.metro.tokyo.lg.jp/netreport/2025/report04/01.html)
-      - ページ内にQAが記載されている。
-  - 過去分はアーカイブ(https://www.gikai.metro.tokyo.lg.jp/netreport/archive.html)にある。
+こちら（↓）からなら委員会の議事録も入手できる。フォーマット整理は必要。
 
-- 選挙区：ユーザーの選挙区に関係あるとこだけにすべき。
+- https://www.record.gikai.metro.tokyo.lg.jp/100000?Template=search-library : 議事録
+- https://www.gikai.metro.tokyo.lg.jp/record/committees.html : 速記録
+
+どっちがいいかな？
