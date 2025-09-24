@@ -13,6 +13,7 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 from app.municipal_modules import load_parsers
 from config_loader import load
+from utils.db import ensure_schema
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -33,6 +34,7 @@ def analyze_unprocessed_minutes(
     config = load(municipality)
     encoding = config.get("encoding", "cp932")
     conn = sqlite3.connect(config["db_path"])
+    ensure_schema(conn)
     cur = conn.cursor()
     rows = query_not_analyzed_data(cur, fetcher_name)
     logger.info(f"[INFO] 未分析のファイル数: {len(rows)}")
