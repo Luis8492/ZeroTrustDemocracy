@@ -100,6 +100,18 @@ python3 -m http.server 8001
 # => アクセス: http://localhost:8001/index.html
 ```
 
+### フロントエンドの API エンドポイント設定
+
+- ローカル開発時は、フロントエンドが起動したドメイン（例: `http://localhost:8001`）から自動的に FastAPI サーバーのベース URL (`window.location.origin`) を解決します。
+- 本番ビルドでは、ビルドツール（例: Vite）を用いて `VITE_API_BASE` を設定することで、デプロイ先の API エンドポイントを埋め込めます。
+
+```bash
+# 例: Vite を利用して本番ビルドする場合
+VITE_API_BASE="https://example.com" npm run build
+```
+
+`VITE_API_BASE` を指定しない場合は、デプロイ先のオリジン (`window.location.origin`) がそのまま API ベース URL として使用されます。
+
 ### データベース初期化
 
 議事録を取得する前に、各自治体の SQLite データベースを初期化する必要があります。
