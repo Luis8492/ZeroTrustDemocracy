@@ -14,7 +14,7 @@ RUN pip install --upgrade pip \
 COPY . .
 
 RUN mkdir -p logs db \
-    && chmod +x scripts/start-backend.sh
+    && chmod +x scripts/start-backend.sh scripts/docker-compose-entrypoint.sh
 
 ENV UVICORN_HOST=0.0.0.0 \
     UVICORN_PORT=8000 \

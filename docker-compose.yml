@@ -6,6 +6,9 @@ services:
       context: .
       dockerfile: Dockerfile
     container_name: ztd-backend
+    user: "0:0"
+    entrypoint:
+      - /app/scripts/docker-compose-entrypoint.sh
     ports:
       - "8000:8000"
     volumes:
