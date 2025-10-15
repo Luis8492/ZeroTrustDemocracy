@@ -1,0 +1,31 @@
+version: "3.9"
+
+services:
+  backend:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: ztd-backend
+    ports:
+      - "8000:8000"
+    volumes:
+      - ./logs:/app/logs
+      - ./db:/app/db
+    environment:
+      - UVICORN_HOST=0.0.0.0
+      - UVICORN_PORT=8000
+      - MUNICIPALITY=Tokyo
+      - INIT_DB_ON_START=false
+      - RUN_FETCH_ON_START=false
+    restart: unless-stopped
+
+  frontend:
+    build:
+      context: .
+      dockerfile: Dockerfile.frontend
+    container_name: ztd-frontend
+    ports:
+      - "8001:80"
+    depends_on:
+      - backend
+    restart: unless-stopped

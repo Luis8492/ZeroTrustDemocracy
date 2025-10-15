@@ -110,3 +110,50 @@ python scripts/init_db.py setagaya2
 ```
 
 `scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成します。
+
+---
+
+## 🐳 Docker での実行
+
+ローカル環境に Python や Playwright を直接インストールせずに動作を確認したい場合は、リポジトリに含めた Docker 設定を利用できます。
+
+### 必要なファイル
+
+- `Dockerfile`: FastAPI バックエンド用のイメージを定義します。Playwright の公式 Python イメージをベースにしており、必要な依存関係をすべてインストールします。
+- `Dockerfile.frontend`: フロントエンドの静的ファイルを Nginx で配信するためのイメージです。
+- `docker-compose.yml`: バックエンドとフロントエンドの 2 コンテナをまとめて起動します。アプリケーションのログと SQLite データベースはホスト側の `logs/` および `db/` にマウントされ、永続化されます。
+- `scripts/start-backend.sh`: バックエンドコンテナのエントリポイントです。環境変数で初期化やスクレイピング処理の有無を切り替えられます。
+
+### 起動手順
+
+```bash
+# 変更を反映したイメージをビルドしつつ起動
+docker compose up --build
+
+# バックグラウンドで起動したい場合
+docker compose up --build -d
+```
+
+- FastAPI バックエンド: http://localhost:8000
+- フロントエンド: http://localhost:8001
+
+ブラウザでフロントエンドにアクセスすると、ホストの `localhost:8000` に公開された API を利用します。
+
+### オプション
+
+以下の環境変数は `docker-compose.yml` で設定済みですが、必要に応じて上書きできます。
+
+| 変数名 | 役割 | 既定値 |
+|--------|------|--------|
+| `MUNICIPALITY` | 処理対象の自治体を指定します。 | `Tokyo` |
+| `INIT_DB_ON_START` | コンテナ起動時に `scripts/init_db.py` を実行するかどうか。 | `false` |
+| `RUN_FETCH_ON_START` | コンテナ起動時に `app/fetch.py` と `app/minute_analyzer.py` を実行するか。 | `false` |
+| `UVICORN_HOST` / `UVICORN_PORT` | Uvicorn サーバーのホスト・ポート。 | `0.0.0.0` / `8000` |
+
+自治体向けの SQLite データベースを事前に用意したい場合は、起動後に以下のように実行してください。
+
+```bash
+# 例: setagaya2 の DB を初期化
+docker compose run --rm backend python scripts/init_db.py setagaya2
+```
+
