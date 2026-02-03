@@ -16,6 +16,7 @@ def init_db(municipality: str = "setagaya"):
         """
 CREATE TABLE IF NOT EXISTS minutes (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT UNIQUE,
     url TEXT UNIQUE,
     file_name TEXT,
     fetcher TEXT NOT NULL DEFAULT "SetagayaCommitteeFetcher",
@@ -47,6 +48,7 @@ CREATE TABLE IF NOT EXISTS downloaded_minutes_url_helper (
         """
 CREATE TABLE IF NOT EXISTS questions (
     id INTEGER PRIMARY KEY AUTOINCREMENT,
+    uuid TEXT UNIQUE,
     file_name TEXT,
     topic_intro TEXT,
     QA TEXT,

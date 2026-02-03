@@ -9,6 +9,7 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     """
     CREATE TABLE IF NOT EXISTS minutes (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         url TEXT UNIQUE,
         file_name TEXT,
         fetcher TEXT NOT NULL DEFAULT "SetagayaCommitteeFetcher",
@@ -34,6 +35,7 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
     """
     CREATE TABLE IF NOT EXISTS questions (
         id INTEGER PRIMARY KEY AUTOINCREMENT,
+        uuid TEXT UNIQUE,
         file_name TEXT,
         topic_intro TEXT,
         QA TEXT,
@@ -49,4 +51,26 @@ def ensure_schema(conn: Connection) -> None:
     cur = conn.cursor()
     for statement in SCHEMA_STATEMENTS:
         cur.execute(statement)
+    _ensure_columns(
+        conn,
+        "minutes",
+        {
+            "uuid": "TEXT UNIQUE",
+        },
+    )
+    _ensure_columns(
+        conn,
+        "questions",
+        {
+            "uuid": "TEXT UNIQUE",
+        },
+    )
     conn.commit()
+
+
+def _ensure_columns(conn: Connection, table: str, columns: dict[str, str]) -> None:
+    cur = conn.cursor()
+    existing = {row[1] for row in cur.execute(f"PRAGMA table_info({table})")}
+    for column, definition in columns.items():
+        if column not in existing:
+            cur.execute(f"ALTER TABLE {table} ADD COLUMN {column} {definition}")
