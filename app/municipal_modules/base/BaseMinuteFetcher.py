@@ -2,6 +2,7 @@
 
 import json
 import sqlite3
+import uuid
 from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
@@ -53,16 +54,18 @@ class BaseMinuteFetcher(ABC):
         file_path: str,
         fetcher_name: str,
     ) -> None:
+        minute_uuid = self._generate_minute_uuid(url, fetcher_name)
         cur = conn.cursor()
         cur.execute(
             """
-INSERT INTO minutes (url, file_name, fetcher, analyzed)
-VALUES (?, ?, ?, 0)
+INSERT INTO minutes (uuid, url, file_name, fetcher, analyzed)
+VALUES (?, ?, ?, ?, 0)
 ON CONFLICT(url) DO UPDATE SET
     file_name=excluded.file_name,
-    fetcher=excluded.fetcher
+    fetcher=excluded.fetcher,
+    uuid=excluded.uuid
 """,
-            (url, Path(file_path).name, fetcher_name),
+            (minute_uuid, url, Path(file_path).name, fetcher_name),
         )
         conn.commit()
 
@@ -125,6 +128,12 @@ ON CONFLICT(url) DO UPDATE SET
             (url,),
         )
         return cur.fetchone() is not None
+
+    @staticmethod
+    def _generate_minute_uuid(url: str, fetcher_name: str) -> str:
+        """Generate a deterministic UUID based on URL and fetcher name."""
+
+        return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{fetcher_name}:{url}"))
 
     @abstractmethod
     def extract_minutes_urls(self, page, conn: sqlite3.Connection | None = None):
