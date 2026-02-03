@@ -38,6 +38,8 @@
 ### ✅ APIサーバー（FastAPI）
 - **`POST /api/qa/meta`**: 評価済みIDのQAメタ情報を返す（会議名と日次を含む）
 - **`POST /api/qa/next`**: ユーザー未評価のQAをランダムに1件返す
+  - 各レスポンスには `uuid` を含む
+- **`GET /api/qa`**: `uuid` を指定してQAを取得する
   - 詳しい入出力仕様は[APIドキュメント](API.md)を参照してください。
 
 ---
@@ -109,7 +111,7 @@ python3 -m http.server 8001
 python scripts/init_db.py setagaya2
 ```
 
-`scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成します。
+`scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成し、`minutes.uuid` と `questions.uuid` を含める構成である。
 
 ---
 
@@ -156,4 +158,3 @@ docker compose up --build -d
 # 例: setagaya2 の DB を初期化
 docker compose run --rm backend python scripts/init_db.py setagaya2
 ```
-

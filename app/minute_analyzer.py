@@ -5,6 +5,7 @@ import sqlite3
 import os
 import json
 import sys
+import uuid
 from pathlib import Path
 
 # Ensure repository root is on the Python path before importing modules outside `app`
@@ -105,9 +106,10 @@ def save_meta_info(minute, conn):
 def save_QAs(minute,conn):
     file_name = minute["file_name"]
     cur = conn.cursor()
-    for topic in minute["QAs"]:
+    minute_uuid = _get_minute_uuid(conn, file_name)
+    for topic_index, topic in enumerate(minute["QAs"]):
         intro=""
-        for QA in topic:
+        for qa_index, QA in enumerate(topic):
             if intro=="":
                 intro=json.dumps(QA,indent=4,ensure_ascii=False)
             else:
@@ -121,11 +123,28 @@ def save_QAs(minute,conn):
                     # Skip QA sequences with no questioner mark (◆)
                     continue
                 QA_text = json.dumps(QA,indent=4,ensure_ascii=False)
+                qa_uuid = _generate_qa_uuid(minute_uuid, topic_index, qa_index)
                 cur.execute(
-                    "INSERT OR IGNORE INTO questions (file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?)",
-                    (file_name,intro,QA_text,questioner)
+                    "INSERT OR IGNORE INTO questions (uuid, file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?, ?)",
+                    (qa_uuid, file_name, intro, QA_text, questioner)
                 )
     conn.commit()
+
+
+def _get_minute_uuid(conn: sqlite3.Connection, file_name: str) -> str:
+    cur = conn.cursor()
+    cur.execute(
+        "SELECT uuid FROM minutes WHERE file_name = ? ORDER BY id DESC LIMIT 1",
+        (file_name,),
+    )
+    row = cur.fetchone()
+    if row and row[0]:
+        return row[0]
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"legacy:{file_name}"))
+
+
+def _generate_qa_uuid(minute_uuid: str, topic_index: int, qa_index: int) -> str:
+    return str(uuid.uuid5(uuid.NAMESPACE_URL, f"{minute_uuid}:{topic_index}:{qa_index}"))
 
 
 def main() -> None:

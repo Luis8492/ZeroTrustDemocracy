@@ -84,6 +84,18 @@ def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
     qa = get_QA_by_id(target_id, config)
     return format_QA(qa, config)
 
+@app.get("/api/qa")
+def get_qa_by_uuid(uuid: str = Query(...), municipality: str = Query("setagaya")):
+    try:
+        municipality = validate_municipality(municipality)
+        config = load(municipality)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
+    qa = get_QA_by_uuid(uuid, config)
+    if qa is None:
+        raise HTTPException(status_code=404, detail="QA not found")
+    return format_QA(qa, config)
+
 @app.post("/api/qa/meta")
 def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     if not data.evaled_ids:
@@ -102,7 +114,7 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
     query = f"""
-        SELECT q.id, q.questioner, q.topic_intro, q.QA, m.name, m.date, helper.metadata
+        SELECT q.id, q.uuid, q.questioner, q.topic_intro, q.QA, m.name, m.date, helper.metadata
         FROM questions q
         JOIN meetings m ON q.file_name = m.file_name
         LEFT JOIN minutes mi ON q.file_name = mi.file_name
@@ -112,20 +124,21 @@ def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
     cur.execute(query, data.evaled_ids)
     metas = []
     for row in cur.fetchall():
-        questioner = row[1]
-        metadata = row[6]
+        questioner = row[2]
+        metadata = row[7]
         party = party_table.get(questioner, "") if party_table else ""
         if not party:
             party = party_from_metadata(metadata, questioner)
         metas.append(
             {
                 "id": row[0],
+                "uuid": row[1],
                 "questioner": questioner,
                 "questioner_party": party,
-                "topic_intro": json.loads(row[2]),
-                "QA": json.loads(row[3]),
-                "committee_name": row[4],
-                "committee_date": row[5],
+                "topic_intro": json.loads(row[3]),
+                "QA": json.loads(row[4]),
+                "committee_name": row[5],
+                "committee_date": row[6],
             }
         )
     conn.close()
@@ -157,14 +170,31 @@ def get_eval_counts(evaled_ids: List[int], config: Dict[str, Any]) -> Dict[str, 
 def get_QA_by_id(qa_id: int, config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
-    cur.execute("SELECT id,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
+    cur.execute("SELECT id,uuid,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
     row = cur.fetchone()
     conn.close()
     return {
         "id": qa_id,
-        "file_name":row[1],
-        "topic_intro": row[2],
-        "QA": row[3]
+        "uuid": row[1],
+        "file_name":row[2],
+        "topic_intro": row[3],
+        "QA": row[4]
+    }
+
+def get_QA_by_uuid(qa_uuid: str, config: Dict[str, Any]) -> Dict[str, Any] | None:
+    conn = sqlite3.connect(config["db_path"])
+    cur = conn.cursor()
+    cur.execute("SELECT id,uuid,file_name,topic_intro,QA FROM questions WHERE uuid=?", (qa_uuid,))
+    row = cur.fetchone()
+    conn.close()
+    if row is None:
+        return None
+    return {
+        "id": row[0],
+        "uuid": row[1],
+        "file_name": row[2],
+        "topic_intro": row[3],
+        "QA": row[4],
     }
 
 def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
@@ -175,6 +205,7 @@ def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
     conn.close()
     return {
         "id": entry.get("id"),
+        "uuid": entry.get("uuid"),
         "committee_date": row[1],
         "committee_name": row[2],
         "topic_intro": anonymize_QA(json.loads(entry.get("topic_intro")), config),
