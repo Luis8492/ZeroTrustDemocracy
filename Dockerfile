@@ -13,7 +13,10 @@ RUN pip install --upgrade pip \
 
 COPY . .
 
-RUN mkdir -p logs db \
+RUN groupadd --gid 1000 appgroup \
+    && useradd --uid 1000 --gid appgroup --create-home --shell /bin/bash appuser \
+    && mkdir -p logs db \
+    && chown -R appuser:appgroup /app \
     && chmod +x scripts/start-backend.sh scripts/docker-compose-entrypoint.sh
 
 ENV UVICORN_HOST=0.0.0.0 \
@@ -23,5 +26,7 @@ ENV UVICORN_HOST=0.0.0.0 \
     RUN_FETCH_ON_START=false
 
 EXPOSE 8000
+
+USER appuser
 
 CMD ["/app/scripts/start-backend.sh"]
