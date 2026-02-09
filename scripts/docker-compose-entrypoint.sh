@@ -2,7 +2,7 @@
 set -euo pipefail
 
 mkdir -p /app/logs /app/db /app/app/raw_minutes /app/app/exports
-chown -R pwuser:pwuser /app/logs /app/db /app/app/raw_minutes /app/app/exports
+chown -R pwuser:pwuser /app/logs /app/db /app/app/exports
 
 if command -v su >/dev/null 2>&1; then
   exec su -s /bin/bash pwuser -c "/app/scripts/start-backend.sh"
