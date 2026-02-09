@@ -137,8 +137,11 @@ python scripts/init_db.py setagaya2
 | `./db` | `/app/db` | SQLite データベース |
 | `./app/raw_minutes` | `/app/app/raw_minutes` | 取得した生議事録ファイル |
 | `./app/exports` | `/app/app/exports` | 加工結果などの生成物 |
+| `./config` | `/app/config` | 外部設定ファイル（`config.yaml`, `<municipality>.yaml` など） |
 
 `app/exports/` は生成物の保存先として追加している。必要に応じて、解析結果の JSON や CSV などをこのディレクトリに出力するとよい。
+
+`./config` を `/app/config` にマウントすることで、コンテナ外で管理する設定を優先的に読み込める。`CONFIG_DIR` または `CONFIG_PATH` を指定すると、デフォルトの同梱設定より外部設定を優先する実装である。
 
 ### 別コンテナから参照する方法
 
@@ -181,6 +184,20 @@ docker compose up --build -d
 | `INIT_DB_ON_START` | コンテナ起動時に `scripts/init_db.py` を実行するかどうか。 | `false` |
 | `RUN_FETCH_ON_START` | コンテナ起動時に `app/fetch.py` と `app/minute_analyzer.py` を実行するか。 | `false` |
 | `UVICORN_HOST` / `UVICORN_PORT` | Uvicorn サーバーのホスト・ポート。 | `0.0.0.0` / `8000` |
+| `CONFIG_DIR` | 自治体設定や `config.yaml` を置く外部設定ディレクトリ。 | `/app/config` |
+| `CONFIG_PATH` | グローバル設定ファイルの絶対パス（`CONFIG_DIR` より優先）。 | 未設定 |
+
+
+外部設定を利用する場合の例は以下のとおりである。
+
+```bash
+# docker-compose.yml で ./config:/app/config をマウント済みの場合
+# /app/config/config.yaml, /app/config/setagaya2.yaml などが優先される
+docker compose up --build
+
+# グローバル設定だけ別パスを使う場合
+CONFIG_PATH=/app/config/production.yaml docker compose up --build
+```
 
 自治体向けの SQLite データベースを事前に用意したい場合は、起動後に以下のように実行してください。
 
