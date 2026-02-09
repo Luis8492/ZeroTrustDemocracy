@@ -16,12 +16,14 @@ services:
       - ./db:/app/db
       - ./app/raw_minutes:/app/app/raw_minutes
       - ./app/exports:/app/app/exports
+      - ./config:/app/config
     environment:
       - UVICORN_HOST=0.0.0.0
       - UVICORN_PORT=8000
       - MUNICIPALITY=setagaya
       - INIT_DB_ON_START=false
       - RUN_FETCH_ON_START=false
+      - CONFIG_DIR=/app/config
     restart: unless-stopped
 
   frontend:
