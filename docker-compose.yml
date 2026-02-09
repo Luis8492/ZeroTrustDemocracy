@@ -14,6 +14,8 @@ services:
     volumes:
       - ./logs:/app/logs
       - ./db:/app/db
+      - ./app/raw_minutes:/app/app/raw_minutes
+      - ./app/exports:/app/app/exports
     environment:
       - UVICORN_HOST=0.0.0.0
       - UVICORN_PORT=8000
