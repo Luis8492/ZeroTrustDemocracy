@@ -44,14 +44,21 @@ def load(municipality: str):
 
 def _resolve_global_config_path() -> Path:
     config_path_env = os.getenv('CONFIG_PATH')
+    candidates = []
     if config_path_env:
-        return Path(config_path_env).expanduser()
+        candidates.append(Path(config_path_env).expanduser())
 
     config_dir_env = os.getenv('CONFIG_DIR')
     if config_dir_env:
-        return Path(config_dir_env).expanduser() / 'config.yaml'
+        candidates.append(Path(config_dir_env).expanduser() / 'config.yaml')
 
-    return base_dir / 'config.yaml'
+    candidates.append(base_dir / 'config.yaml')
+
+    for candidate in candidates:
+        if candidate.exists():
+            return candidate
+
+    return candidates[0]
 
 
 def _resolve_municipality_config_path(municipality: str) -> Path:
