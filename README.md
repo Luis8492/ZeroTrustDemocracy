@@ -123,8 +123,38 @@ python scripts/init_db.py setagaya2
 
 - `Dockerfile`: FastAPI バックエンド用のイメージを定義します。Playwright の公式 Python イメージをベースにしており、必要な依存関係をすべてインストールします。
 - `Dockerfile.frontend`: フロントエンドの静的ファイルを Nginx で配信するためのイメージです。
-- `docker-compose.yml`: バックエンドとフロントエンドの 2 コンテナをまとめて起動します。アプリケーションのログと SQLite データベースはホスト側の `logs/` および `db/` にマウントされ、永続化されます。
+- `docker-compose.yml`: バックエンドとフロントエンドの 2 コンテナをまとめて起動する。アプリケーションのログ、SQLite データベース、取得した議事録、生成物はホスト側ディレクトリへマウントされ、永続化される。
 - `scripts/start-backend.sh`: バックエンドコンテナのエントリポイントです。環境変数で初期化やスクレイピング処理の有無を切り替えられます。
+
+
+### 永続化されるディレクトリ
+
+`docker-compose.yml` では、以下のディレクトリをバックエンドコンテナへバインドマウントしている。
+
+| ホスト側 | コンテナ側 | 用途 |
+|---|---|---|
+| `./logs` | `/app/logs` | バックエンドログ |
+| `./db` | `/app/db` | SQLite データベース |
+| `./app/raw_minutes` | `/app/app/raw_minutes` | 取得した生議事録ファイル |
+| `./app/exports` | `/app/app/exports` | 加工結果などの生成物 |
+
+`app/exports/` は生成物の保存先として追加している。必要に応じて、解析結果の JSON や CSV などをこのディレクトリに出力するとよい。
+
+### 別コンテナから参照する方法
+
+同一 `docker compose` プロジェクト内であれば、同じホスト側パスを別サービスにもマウントすることで参照できる。
+
+```yaml
+services:
+  worker:
+    image: python:3.12-slim
+    volumes:
+      - ./app/raw_minutes:/work/raw_minutes:ro
+      - ./app/exports:/work/exports
+```
+
+- `:ro` を付与すると読み取り専用マウントになるため、安全に参照だけを行える。
+- 書き込みが必要な場合は `:ro` を外し、共有ディレクトリとして利用する。
 
 ### 起動手順
 
