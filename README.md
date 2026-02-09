@@ -121,7 +121,7 @@ python scripts/init_db.py setagaya2
 
 ### 必要なファイル
 
-- `Dockerfile`: FastAPI バックエンド用のイメージを定義します。Playwright の公式 Python イメージをベースにしており、必要な依存関係をすべてインストールします。
+- `Dockerfile`: FastAPI バックエンド用のイメージを定義する。Playwright の公式 Python イメージをベースにし、依存関係をインストールしたうえで非 root ユーザー（`appuser`）でプロセスを実行する。
 - `Dockerfile.frontend`: フロントエンドの静的ファイルを Nginx で配信するためのイメージです。
 - `docker-compose.yml`: バックエンドとフロントエンドの 2 コンテナをまとめて起動する。アプリケーションのログ、SQLite データベース、取得した議事録、生成物はホスト側ディレクトリへマウントされ、永続化される。
 - `scripts/start-backend.sh`: バックエンドコンテナのエントリポイントです。環境変数で初期化やスクレイピング処理の有無を切り替えられます。
@@ -158,6 +158,20 @@ services:
 
 - `:ro` を付与すると読み取り専用マウントになるため、安全に参照だけを行える。
 - 書き込みが必要な場合は `:ro` を外し、共有ディレクトリとして利用する。
+
+### ヘルスチェックと起動順制御
+
+`docker-compose.yml` では `backend` / `frontend` の両サービスに `healthcheck` を設定している。
+
+- `backend`: `http://localhost:8000/openapi.json` へコンテナ内部からアクセスし、API が応答可能かを確認する。
+- `frontend`: `http://localhost/` への HTTP アクセスで Nginx の応答可否を確認する。
+- `frontend` は `depends_on` の `condition: service_healthy` を使い、`backend` のヘルスチェック成功後に起動する。
+
+状態確認は以下で行える。
+
+```bash
+docker compose ps
+```
 
 ### 起動手順
 
