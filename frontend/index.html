@@ -1,41 +1,12 @@
 <!DOCTYPE html>
-<html lang="ja">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width,initial-scale=1">
-    <script src="https://cdn.jsdelivr.net/npm/idb@7/build/umd.js"></script>
-    <script src="db.js" type="module"></script>
-    <script src="api.js" type="module"></script>
-    <script src="main.js" type="module"></script>
-    <title>Zero Trust Democracy</title>
-</head>
-<body>
-    <nav>
-        <a href="result.html">Results</a>
-    </nav>
-    <input type="button" onclick="fetchQuestion()" value="Reload Question">
-    <h1>Minutes quotation</h1>
-    <h2>Meeting Info</h2>
-    <div id="meetingName"></div>
-    <div id="meetingDate"></div>
-    <h2>Initial Statement</h2>
-    <div id="topic_intro"></div>
-    <h2>Question</h2>
-    <div id="question"></div>
-    <h1>Evaluation</h1>
-    <div id="evaluation">
-    <label><input type="radio" name="eval" value="-3"> -3 </label>
-    <label><input type="radio" name="eval" value="-2"> -2 </label>
-    <label><input type="radio" name="eval" value="-1"> -1 </label>
-    <label><input type="radio" name="eval" value="0" checked> 0 </label>
-    <label><input type="radio" name="eval" value="1"> +1 </label>
-    <label><input type="radio" name="eval" value="2"> +2 </label>
-    <label><input type="radio" name="eval" value="3"> +3 </label>
-    </div>
-    <br>
-    <input type="button" onclick="recordEval()" value="Submit Evaluation">
-    <input type="button" onclick="scrollToTop()" value="Scroll To Top">
-    <h1>DEBUG</h1>
-    <div id="debugSection"></div>
-</body>
+<html lang="ja" data-theme="plain">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width,initial-scale=1" />
+    <title>世田谷区議会QAナビ</title>
+  </head>
+  <body>
+    <div id="app"></div>
+    <script type="module" src="/src/main.ts"></script>
+  </body>
 </html>

@@ -1,54 +1,43 @@
 # Scripts
 
-補助的な Python スクリプトをまとめています。
-
-## copy_setagaya_db.py
-
-`app/db/minutes.db` を `app/db/setagaya.db` にコピーするスクリプトです。
-
-### 使い方
-```bash
-python scripts/copy_setagaya_db.py
-```
-実行すると `Copied db/minutes.db -> db/setagaya.db` と表示されます。
+補助 Python スクリプト一覧です。`MUNICIPALITY` 引数を取るものは現状 `setagaya`
+のみ受け付けます (定例会用は `--fetcher SetagayaRegularFetcher` で個別指定)。
 
 ## init_db.py
 
-設定ファイルに基づいて SQLite データベースの空テーブルを作成します。
-
-### 使い方
 ```bash
 python scripts/init_db.py [municipality]
 ```
-`municipality` を省略した場合は `setagaya` が使用されます。
+`<municipality>.yaml:db_path` で指定された SQLite ファイルにスキーマを作成します。
 
-## add_fetcher_column.py
+## add_fetcher_column.py / add_participants_column.py
 
-`minutes` テーブルに `fetcher` 列を追加し、既存のファイル名にもフェッチャ名をプレフィックスとして付与します。
+旧スキーマからのマイグレーション補助。新規 DB では `utils/db.py:ensure_schema`
+が同等処理を実行するため、通常は不要です。
 
-### 使い方
+## remove_non_question_qas.py / remove_duplicates.py
+
+DB クリーンアップ用ユーティリティ。
+
+## quality_check_setagaya_regular.py
+
+`SetagayaRegularFetcher` が取得した HTML ファイルを `SetagayaRegularParser` に
+かけて、Pattern1/2/3/Unknown の分布と抽出トピック数を集計します。Phase 0a で
+利用したもの。
+
 ```bash
-python scripts/add_fetcher_column.py [municipality]
+PYTHONIOENCODING=utf-8 python scripts/quality_check_setagaya_regular.py
 ```
-`municipality` を省略した場合は `setagaya` が使用されます。
 
-## add_participants_column.py
+## display_setagaya_minute.py / display_setagaya_regular_minute.py
 
-`meetings` テーブルに `participants` 列を追加し、既存の議事録を解析して参加者リストを埋めます。
+指定した raw 議事録ファイルをパースして JSON で出力する開発用ツール。
 
-### 使い方
 ```bash
-python scripts/add_participants_column.py [municipality]
+python scripts/display_setagaya_minute.py SetagayaCommitteeFetcher_*.txt
+python scripts/display_setagaya_regular_minute.py SetagayaRegularFetcher_*.html
 ```
-`municipality` を省略した場合は `setagaya` が使用されます。
 
-## remove_non_question_qas.py
+## list_setagaya_regular_urls.py
 
-設定ファイルに基づいて SQLite データベースから質問になっていない QA を削除します。
-
-### 使い方
-```bash
-python scripts/remove_non_question_qas.py [municipality]
-```
-`municipality` を省略した場合は `setagaya` が使用されます。
-実行すると削除した件数がログに表示されます。
+定例会ページから議事録 URL を一覧表示します (Playwright)。

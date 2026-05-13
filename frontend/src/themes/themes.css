@@ -1,0 +1,178 @@
+/* Theme variable tokens. Each `[data-theme="..."]` block overrides the
+ * defaults so component CSS can stay theme-agnostic and refer to var(--...).
+ *
+ * Phase 1 ships only the `plain` theme as the working baseline. `chat`,
+ * `scroll`, and `hud` will be filled in by Phase 2/3.
+ */
+
+:root {
+  /* surfaces */
+  --bg: #fafafa;
+  --surface: #ffffff;
+  --surface-alt: #f1f3f5;
+  --border: #e2e6ea;
+
+  /* text */
+  --text: #1f2933;
+  --text-muted: #5c6773;
+  --accent: #2563eb;
+  --accent-contrast: #ffffff;
+
+  /* speech */
+  --questioner-bg: #fff3cd;
+  --questioner-text: #5c4400;
+  --answerer-bg: #d1e7dd;
+  --answerer-text: #0f5132;
+  --chair-bg: #e2e3e5;
+  --chair-text: #2f3034;
+
+  /* typography */
+  --font-body: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Noto Sans JP',
+    'Hiragino Sans', 'Meiryo', sans-serif;
+  --font-display: var(--font-body);
+  --font-mono: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  --radius: 10px;
+
+  /* layout */
+  --max-width: 720px;
+  --gap: 1rem;
+}
+
+html, body {
+  margin: 0;
+  padding: 0;
+  background: var(--bg);
+  color: var(--text);
+  font-family: var(--font-body);
+  line-height: 1.65;
+  font-size: 16px;
+}
+
+body {
+  min-height: 100vh;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+a {
+  color: var(--accent);
+}
+
+button {
+  font-family: inherit;
+  font-size: 1rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--border);
+  background: var(--surface);
+  color: var(--text);
+  padding: 0.5rem 1rem;
+  cursor: pointer;
+  transition: background 120ms ease, transform 120ms ease;
+}
+button:hover { background: var(--surface-alt); }
+button:active { transform: translateY(1px); }
+button.primary {
+  background: var(--accent);
+  color: var(--accent-contrast);
+  border-color: var(--accent);
+}
+button.primary:hover { filter: brightness(0.95); background: var(--accent); }
+
+/* Themes ---------------------------------------------------- */
+
+[data-theme='plain'] {
+  /* uses :root defaults */
+}
+
+/* Chat theme: instant-messenger aesthetic.
+ * Questioner = right-aligned blue bubbles (LINE/Messenger "me" tone).
+ * Answerer   = left-aligned neutral bubbles.
+ * Chair      = grey italic system message centered.
+ */
+[data-theme='chat'] {
+  --bg: #eef2f6;
+  --surface: #ffffff;
+  --surface-alt: #dfe6ed;
+  --border: #d0d7de;
+  --text: #1f2933;
+  --text-muted: #687480;
+  --accent: #2563eb;
+
+  --questioner-bubble: #2563eb;
+  --questioner-bubble-text: #ffffff;
+  --questioner-avatar: #1d4ed8;
+  --questioner-avatar-text: #ffffff;
+
+  --answerer-bubble: #ffffff;
+  --answerer-bubble-text: #1f2933;
+  --answerer-avatar: #fde68a;
+  --answerer-avatar-text: #5c4400;
+
+  --font-display: 'Hiragino Sans', 'Noto Sans JP', var(--font-body);
+}
+[data-theme='chat'] body {
+  background: var(--bg);
+}
+
+/* Scroll theme: vertical-rl 古文書 / 和紙 aesthetic.
+ * Body of speeches scrolls horizontally (right-to-left). Chrome stays
+ * horizontal so navigation remains familiar.
+ */
+[data-theme='scroll'] {
+  --bg: #efe1c0;
+  --surface: #f8eed3;
+  --surface-alt: #ecd9b1;
+  --border: #b9a26a;
+  --text: #2a1d0b;
+  --text-muted: #6b563a;
+  --accent: #b00020;
+  --accent-contrast: #fff8e6;
+
+  --questioner-bg: #f8eed3;
+  --questioner-text: #7a0e0e;
+  --answerer-bg: #f8eed3;
+  --answerer-text: #1f3a1f;
+  --chair-bg: transparent;
+  --chair-text: #6b563a;
+
+  --font-body: 'Yu Mincho', 'Hiragino Mincho ProN', 'Noto Serif JP', serif;
+  --font-display: var(--font-body);
+  --radius: 4px;
+}
+[data-theme='scroll'] body {
+  background:
+    repeating-linear-gradient(90deg, rgba(0,0,0,0.025) 0 1px, transparent 1px 6px),
+    var(--bg);
+}
+
+/* HUD / SF theme: dark glassmorphism, cyan accent. */
+[data-theme='hud'] {
+  --bg: #020617;
+  --surface: rgba(20, 35, 60, 0.55);
+  --surface-alt: rgba(34, 211, 238, 0.08);
+  --border: rgba(34, 211, 238, 0.35);
+  --text: #e2f2ff;
+  --text-muted: #8ab4d4;
+  --accent: #22d3ee;
+  --accent-contrast: #021522;
+
+  --questioner-bg: rgba(34, 211, 238, 0.16);
+  --questioner-text: #b4ecff;
+  --answerer-bg: rgba(168, 85, 247, 0.16);
+  --answerer-text: #efd9ff;
+  --chair-bg: rgba(255, 255, 255, 0.05);
+  --chair-text: #8ab4d4;
+
+  --font-display: 'Orbitron', 'JetBrains Mono', ui-monospace, monospace;
+  --font-mono: 'JetBrains Mono', ui-monospace, monospace;
+  --radius: 6px;
+}
+[data-theme='hud'] body {
+  background:
+    radial-gradient(circle at 20% 10%, rgba(34, 211, 238, 0.12), transparent 40%),
+    radial-gradient(circle at 80% 90%, rgba(168, 85, 247, 0.12), transparent 40%),
+    var(--bg);
+  color: var(--text);
+}

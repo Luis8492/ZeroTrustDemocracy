@@ -1,18 +1,40 @@
 # municipal_modules
 
-自治体ごとの議会議事録を扱うモジュール群です。
+世田谷区議会の議事録を扱うモジュール群です。
 
-各自治体は `municipal_modules/<municipality>/` にディレクトリを持ち、
-その中に次のサブディレクトリを配置します。
+現在の配布物には世田谷区のみが含まれます。1 自治体 (`setagaya`) の下に **session
+type** ごとのサブパッケージを配置する構造を採用しています。
 
-- `config/` - 自治体固有の設定を記述した YAML ファイル (例: `setagaya.yaml`)
-- `fetchers/` - 議事録をダウンロードするクラスを実装します。`BaseMinuteFetcher` を継承し、検索条件の設定や URL の抽出、ファイルの保存処理を記述します。
-- `parsers/` - ダウンロードした議事録を構造化データに変換するパーサーを実装します。`BaseMinuteParser` を継承し、議事録テキストからメタデータや発言を抽出します。
+```
+setagaya/
+├── __init__.py            # PARSERS / FETCHERS dict を export
+├── config/
+│   ├── setagaya.yaml      # 共有設定 + fetchers.<NAME> ごとの上書き
+│   ├── name-party-table.csv
+│   └── party_names.csv
+├── committee/             # 委員会セッション (SetagayaCommitteeFetcher/Parser)
+└── regular/               # 定例会セッション (SetagayaRegularFetcher/Parser)
+```
 
-共通の基底クラスは `base/` ディレクトリに配置されています。
+別議会への対応はリポジトリをフォークして上記構造ごと置き換える形を想定して
+います。詳細な手順は `docs/FORK_GUIDE.md` を参照してください。
 
-上記構成を揃えることで、新しい自治体の議事録取得と解析が可能になります。
+## モジュール構成のルール
 
-# ToDo
-現在は、setagaya/にて世田谷区議会の委員会の議事録を取得・分析していますが、定例会の議事録も処理したい。
-干渉による影響を避けるため、一旦setagaya2/というディレクトリで定例会の議事録処理は作成。
+- `setagaya/__init__.py` は `PARSERS = {fetcher_name: parser_class}` と
+  `FETCHERS = {fetcher_name: fetcher_class}` を export する。
+- 各 session サブパッケージは `BaseMinuteFetcher` と `BaseMinuteParser` の
+  サブクラスを 1 組ずつ保持する。
+- `FETCHER_NAME` (Parser/Fetcher 両方の class attribute) は session を識別する
+  キー。raw_minutes のファイル名 prefix、`minutes.fetcher` カラム、設定 YAML の
+  `fetchers.<NAME>` キーで一致させる。
+
+## 設定ファイル
+
+`setagaya/config/setagaya.yaml` は共有フィールドを top-level に、session 個別の
+`fetch_url` / `encoding` を `fetchers.<FETCHER_NAME>` 配下に置きます。
+`config_loader.load_for_fetcher(municipality, fetcher_name)` がこれをマージして
+平坦な dict を返すため、フェッチャや analyzer は session 単位の値を意識します。
+
+`config_loader.available_municipalities()` は `<name>/config/<name>.yaml` の存在を
+起点に自動検出するため、ハードコードされた一覧は存在しません。

@@ -12,15 +12,15 @@ from pathlib import Path
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
-from app.municipal_modules import load_parsers
-from config_loader import load
+from app.municipal_modules import load_parsers_by_municipality
+from config_loader import load, load_for_fetcher
 from utils.db import ensure_schema
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-# Load parser classes available in municipal_modules
-PARSER_CLASSES = load_parsers()
+# {municipality: {fetcher_name: parser_class}}
+PARSERS_BY_MUNICIPALITY = load_parsers_by_municipality()
 
 
 def analyze_unprocessed_minutes(
@@ -28,30 +28,44 @@ def analyze_unprocessed_minutes(
     parser: BaseMinuteParser | None = None,
     fetcher_name: str | None = None,
 ):
-    if parser is None:
-        parser = get_parser(municipality)
-    if fetcher_name is None:
-        fetcher_name = getattr(parser, "FETCHER_NAME")
+    """Analyze all unprocessed minute files for ``municipality``.
+
+    If ``parser`` is supplied, only that parser's fetcher is processed (legacy
+    single-session entry point). Otherwise every (fetcher, parser) pair known
+    for the municipality is processed against rows tagged with the matching
+    ``minutes.fetcher`` value.
+    """
     config = load(municipality)
-    encoding = config.get("encoding", "cp932")
     conn = sqlite3.connect(config["db_path"])
     ensure_schema(conn)
-    cur = conn.cursor()
-    rows = query_not_analyzed_data(cur, fetcher_name)
-    logger.info(f"[INFO] 未分析のファイル数: {len(rows)}")
-    for minute_id, file_name in rows:
-        file_path = "raw_minutes/" + file_name
-        if not os.path.exists(file_path):
-            logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
-            continue
-        try:
-            minute_json = analyze_minute(file_path, parser, encoding=encoding)
-            save_minute_to_db(minute_json, conn)
-            update_analyzed_status(conn, cur, minute_id)
-        except Exception as e:
-            message = f"[ERROR] 分析失敗（ID={minute_id}）: {e}"
-            logger.error(message)
-            print(message)
+
+    if parser is not None:
+        pairs = [(fetcher_name or getattr(parser, "FETCHER_NAME"), parser)]
+    else:
+        parsers = PARSERS_BY_MUNICIPALITY.get(municipality) or {}
+        if not parsers:
+            raise ValueError(f"No parsers registered for municipality: {municipality}")
+        pairs = [(fn, cls()) for fn, cls in parsers.items()]
+
+    for fname, parser_obj in pairs:
+        fetcher_config = load_for_fetcher(municipality, fname)
+        encoding = fetcher_config.get("encoding", "utf-8")
+        cur = conn.cursor()
+        rows = query_not_analyzed_data(cur, fname)
+        logger.info(f"[INFO] {fname}: 未分析のファイル数 {len(rows)}")
+        for minute_id, file_name in rows:
+            file_path = "raw_minutes/" + file_name
+            if not os.path.exists(file_path):
+                logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
+                continue
+            try:
+                minute_json = analyze_minute(file_path, parser_obj, encoding=encoding)
+                save_minute_to_db(minute_json, conn)
+                update_analyzed_status(conn, cur, minute_id)
+            except Exception as e:
+                message = f"[ERROR] 分析失敗（ID={minute_id}）: {e}"
+                logger.error(message)
+                print(message)
 
     conn.close()
 
@@ -73,10 +87,17 @@ def analyze_minute(
 
 
 def get_parser(municipality: str) -> BaseMinuteParser:
-    parser_cls = PARSER_CLASSES.get(municipality)
-    if parser_cls is None:
+    """Return *any* parser registered for ``municipality``.
+
+    Kept for legacy callers that assume one parser per municipality. Modules
+    with multiple sessions return whichever parser ``dict.values()`` yields
+    first; new code should iterate ``PARSERS_BY_MUNICIPALITY[municipality]``
+    explicitly.
+    """
+    parsers = PARSERS_BY_MUNICIPALITY.get(municipality)
+    if not parsers:
         raise ValueError(f"Unsupported municipality: {municipality}")
-    return parser_cls()
+    return next(iter(parsers.values()))()
 
 def update_analyzed_status(conn,cur,minute_id):
     cur.execute(
@@ -158,12 +179,11 @@ def main() -> None:
     )
     args = parser.parse_args()
 
-    municipalities = args.municipality or list(PARSER_CLASSES.keys())
+    municipalities = args.municipality or list(PARSERS_BY_MUNICIPALITY.keys())
     for muni in municipalities:
-        parser_cls = PARSER_CLASSES.get(muni)
-        if parser_cls is None:
+        if muni not in PARSERS_BY_MUNICIPALITY:
             raise ValueError(f"Unsupported municipality: {muni}")
-        analyze_unprocessed_minutes(muni, parser_cls(), parser_cls.FETCHER_NAME)
+        analyze_unprocessed_minutes(muni)
 
 
 if __name__ == "__main__":

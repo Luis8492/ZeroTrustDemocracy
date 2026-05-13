@@ -4,12 +4,30 @@ import yaml
 
 base_dir = Path(__file__).resolve().parent
 municipal_dir = base_dir / 'app' / 'municipal_modules'
-# Municipalities correspond to subdirectories under `app/municipal_modules`
-_ALLOWED_MUNICIPALITIES = {
-    d.name
-    for d in municipal_dir.iterdir()
-    if (d / 'config' / f'{d.name}.yaml').exists()
-}
+
+
+def available_municipalities() -> set[str]:
+    """Discover municipality modules at runtime.
+
+    A municipality is "available" when its bundled YAML config exists at
+    ``app/municipal_modules/<name>/config/<name>.yaml`` OR when a YAML by the
+    same name exists under ``CONFIG_DIR``. This avoids hard-coded allowlists,
+    so adding/removing a municipality module is the only edit required.
+    """
+    names: set[str] = set()
+    if municipal_dir.exists():
+        for d in municipal_dir.iterdir():
+            if d.is_dir() and (d / 'config' / f'{d.name}.yaml').exists():
+                names.add(d.name)
+
+    config_dir_env = os.getenv('CONFIG_DIR')
+    if config_dir_env:
+        config_dir = Path(config_dir_env).expanduser()
+        if config_dir.exists():
+            for path in config_dir.glob('*.yaml'):
+                if path.stem != 'config':
+                    names.add(path.stem)
+    return names
 
 
 def load_global() -> dict:
@@ -23,7 +41,7 @@ def load_global() -> dict:
 
 
 def load(municipality: str):
-    if municipality not in _ALLOWED_MUNICIPALITIES:
+    if municipality not in available_municipalities():
         raise ValueError(f"Unsupported municipality: {municipality}")
     config_path = _resolve_municipality_config_path(municipality)
     with open(config_path, 'r', encoding='utf-8') as f:
@@ -40,6 +58,23 @@ def load(municipality: str):
         data['pii_files'] = [str((root_dir / p).resolve()) for p in data['pii_files']]
 
     return data
+
+
+def load_for_fetcher(municipality: str, fetcher_name: str) -> dict:
+    """Return shared config merged with per-fetcher overrides.
+
+    The unified YAML keeps shared fields (db_path, pii_files, party_table_path)
+    at the top level and per-session overrides under ``fetchers.<FETCHER_NAME>``.
+    Components that operate on a single session (the fetcher itself, the
+    analyzer when picking encoding) want a flat dict, so this helper merges
+    the two.
+    """
+    data = load(municipality)
+    fetchers = data.get('fetchers') or {}
+    overrides = fetchers.get(fetcher_name) or {}
+    merged = {k: v for k, v in data.items() if k != 'fetchers'}
+    merged.update(overrides)
+    return merged
 
 
 def _resolve_global_config_path() -> Path:

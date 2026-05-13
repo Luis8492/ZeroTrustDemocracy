@@ -7,13 +7,11 @@ from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
-from config_loader import load, load_global
-
-ALLOWED_MUNICIPALITIES = {"setagaya", "Tokyo"}
+from config_loader import load, load_global, available_municipalities
 
 
 def validate_municipality(name: str) -> str:
-    if name not in ALLOWED_MUNICIPALITIES:
+    if name not in available_municipalities():
         raise HTTPException(status_code=400, detail="Unsupported municipality")
     return name
 

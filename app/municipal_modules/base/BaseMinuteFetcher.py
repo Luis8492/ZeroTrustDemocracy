@@ -7,7 +7,7 @@ from abc import ABC, abstractmethod
 from pathlib import Path
 from typing import Any
 
-from config_loader import load
+from config_loader import load_for_fetcher
 from utils.db import ensure_schema
 from utils.logger import get_logger
 
@@ -18,10 +18,12 @@ logger = get_logger(__name__)
 class BaseMinuteFetcher(ABC):
     """Common workflow for downloading raw meeting minutes."""
 
+    FETCHER_NAME: str = ""
+
     def __init__(self, playwright, municipality: str):
         self.playwright = playwright
         self.municipality = municipality
-        self.config = load(municipality)
+        self.config = load_for_fetcher(municipality, self.FETCHER_NAME)
         self.raw_minutes_dir = Path(__file__).resolve().parents[2] / "raw_minutes"
 
     def run(self) -> None:

@@ -1,10 +1,11 @@
-from app.municipal_modules.setagaya2.parsers.setagaya2_parser import Setagaya2Parser
+from app.municipal_modules.setagaya.regular.parsers.setagaya_regular_parser import (
+    SetagayaRegularParser,
+)
 import sys
-import json
 
 fileid = sys.argv[1]
 
-p = Setagaya2Parser()
-with open('app/raw_minutes/SetagayaRegularFetcher_https_www_city_setagaya_lg_jp_02030_'+fileid+'_html.html','r') as f:
+p = SetagayaRegularParser()
+with open('app/raw_minutes/SetagayaRegularFetcher_https_www_city_setagaya_lg_jp_02030_'+fileid+'_html.html','r', encoding='utf-8') as f:
 	txt = f.read()
 	print(p.convert(txt))

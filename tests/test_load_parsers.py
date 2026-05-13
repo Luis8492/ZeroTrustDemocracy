@@ -4,7 +4,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from app.municipal_modules import load_parsers
+from app.municipal_modules import load_parsers, load_parsers_by_municipality
 
 
 def test_load_parsers_skips_failing_modules():
@@ -17,9 +17,15 @@ def test_load_parsers_skips_failing_modules():
         "raise RuntimeError('boom')\n"
     )
 
-    parsers = load_parsers()
+    try:
+        flat = load_parsers()
+        grouped = load_parsers_by_municipality()
 
-    assert "setagaya" in parsers
-    assert "broken" not in parsers
-
-    shutil.rmtree(broken)
+        # Flat mapping is keyed by fetcher_name now that one municipality can
+        # host multiple sessions.
+        assert "SetagayaCommitteeFetcher" in flat
+        assert "SetagayaRegularFetcher" in flat
+        assert "setagaya" in grouped
+        assert "broken" not in grouped
+    finally:
+        shutil.rmtree(broken)

@@ -1,12 +1,15 @@
 """Municipality-specific components for fetching and parsing meeting minutes.
 
-This module exposes helper utilities for dynamically discovering parser
-implementations.  Municipal-specific code lives under
-``app/municipal_modules/<municipality>/parsers`` and each parser subclasses
-``BaseMinuteParser``.  The :func:`load_parsers` function walks these packages
-and returns a mapping from municipality name to the corresponding parser
-class.  This allows other parts of the application to support new
-municipalities without hard coding imports.
+This module discovers parser/fetcher implementations at runtime.  A
+municipality package (e.g. ``setagaya``) may expose a ``PARSERS`` dict mapping
+``fetcher_name`` to parser class — this is the preferred form when a single
+municipality has multiple session types.  Older modules with a single parser
+under ``parsers/`` are still supported via fallback discovery.
+
+``load_parsers()`` returns a flat ``{fetcher_name: parser_class}`` mapping,
+which is what the analyzer needs (the ``minutes`` table records the fetcher
+name per row).  ``load_parsers_by_municipality()`` returns the grouped form
+when callers need to know which municipality owns a fetcher.
 """
 
 from __future__ import annotations
@@ -23,54 +26,87 @@ from utils.logger import get_logger
 logger = get_logger(__name__)
 
 
-def load_parsers() -> Dict[str, Type[BaseMinuteParser]]:
-    """Discover available minute parser classes.
-
-    The search traverses subpackages of ``app.municipal_modules`` looking for
-    a ``parsers`` package.  Any class defined in these modules that subclasses
-    :class:`BaseMinuteParser` will be returned.  The key of the returned
-    dictionary is the municipality name (the package name).
-    """
-
-    parser_classes: Dict[str, Type[BaseMinuteParser]] = {}
+def _iter_municipality_packages():
     base_path = Path(__file__).resolve().parent
+    for _finder, name, ispkg in pkgutil.iter_modules([str(base_path)]):
+        if ispkg and name != "base":
+            yield name
 
-    # Iterate through immediate subpackages (municipalities)
-    for finder, name, ispkg in pkgutil.iter_modules([str(base_path)]):
-        if not ispkg or name == "base":
+
+def load_parsers_by_municipality() -> Dict[str, Dict[str, Type[BaseMinuteParser]]]:
+    """Return ``{municipality: {fetcher_name: parser_class}}``."""
+    result: Dict[str, Dict[str, Type[BaseMinuteParser]]] = {}
+    for name in _iter_municipality_packages():
+        try:
+            module = importlib.import_module(f"{__name__}.{name}")
+        except Exception as exc:  # pragma: no cover - import failures
+            logger.warning("Failed to import municipality %s: %s", name, exc)
             continue
 
+        # Preferred: explicit PARSERS dict exported from the package.
+        explicit = getattr(module, "PARSERS", None)
+        if isinstance(explicit, dict) and explicit:
+            result[name] = dict(explicit)
+            continue
+
+        # Fallback: scan <municipality>/parsers/* for BaseMinuteParser subclasses.
         try:
             parsers_pkg = importlib.import_module(f"{__name__}.{name}.parsers")
         except ModuleNotFoundError:
-            # Municipality package without parsers submodule
             continue
-        except Exception as exc:  # pragma: no cover - unexpected import issues
-            logger.warning(
-                "Failed to import parsers package for %s: %s", name, exc
-            )
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to import parsers package for %s: %s", name, exc)
             continue
 
-        # Inspect each module inside the parsers package
+        discovered: Dict[str, Type[BaseMinuteParser]] = {}
         for _, mod_name, _ in pkgutil.iter_modules(parsers_pkg.__path__):
             try:
-                module = importlib.import_module(
-                    f"{__name__}.{name}.parsers.{mod_name}"
-                )
-            except Exception as exc:  # pragma: no cover - import failures
+                mod = importlib.import_module(f"{__name__}.{name}.parsers.{mod_name}")
+            except Exception as exc:  # pragma: no cover
                 logger.warning(
-                    "Failed to import parser module %s for %s: %s",
-                    mod_name,
-                    name,
-                    exc,
+                    "Failed to import parser module %s for %s: %s", mod_name, name, exc
                 )
                 continue
-            for obj_name, obj in inspect.getmembers(module, inspect.isclass):
+            for _, obj in inspect.getmembers(mod, inspect.isclass):
                 if issubclass(obj, BaseMinuteParser) and obj is not BaseMinuteParser:
-                    parser_classes[name] = obj
+                    fetcher_name = getattr(obj, "FETCHER_NAME", None) or name
+                    discovered[fetcher_name] = obj
+        if discovered:
+            result[name] = discovered
+    return result
 
-    return parser_classes
+
+def load_parsers() -> Dict[str, Type[BaseMinuteParser]]:
+    """Return a flat ``{fetcher_name: parser_class}`` mapping across all municipalities."""
+    flat: Dict[str, Type[BaseMinuteParser]] = {}
+    for parsers in load_parsers_by_municipality().values():
+        flat.update(parsers)
+    return flat
 
 
-__all__ = ["load_parsers"]
+def load_fetchers_by_municipality() -> Dict[str, Dict[str, Type]]:
+    """Return ``{municipality: {fetcher_name: fetcher_class}}``.
+
+    Mirrors ``load_parsers_by_municipality`` but for fetcher classes (which
+    cannot be inspected via the parser-only base class). Each municipality
+    package must export a ``FETCHERS`` dict to participate.
+    """
+    result: Dict[str, Dict[str, Type]] = {}
+    for name in _iter_municipality_packages():
+        try:
+            module = importlib.import_module(f"{__name__}.{name}")
+        except Exception as exc:  # pragma: no cover
+            logger.warning("Failed to import municipality %s: %s", name, exc)
+            continue
+        fetchers = getattr(module, "FETCHERS", None)
+        if isinstance(fetchers, dict) and fetchers:
+            result[name] = dict(fetchers)
+    return result
+
+
+__all__ = [
+    "load_parsers",
+    "load_parsers_by_municipality",
+    "load_fetchers_by_municipality",
+]
 

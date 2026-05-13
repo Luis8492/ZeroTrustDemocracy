@@ -18,6 +18,10 @@ logs/
 *.sqlite3
 *.db
 
+# Frontend build artifacts (rebuilt inside the image)
+frontend/node_modules/
+frontend/dist/
+
 # OS generated files
 .DS_Store
 Thumbs.db

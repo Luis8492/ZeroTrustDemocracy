@@ -21,7 +21,7 @@ RUN groupadd --gid 1000 appgroup \
 
 ENV UVICORN_HOST=0.0.0.0 \
     UVICORN_PORT=8000 \
-    MUNICIPALITY=Tokyo \
+    MUNICIPALITY=setagaya \
     INIT_DB_ON_START=false \
     RUN_FETCH_ON_START=false
 

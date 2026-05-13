@@ -1,7 +1,7 @@
 #!/bin/bash
 set -euo pipefail
 
-MUNICIPALITY="${MUNICIPALITY:-Tokyo}"
+MUNICIPALITY="${MUNICIPALITY:-setagaya}"
 
 if [[ "${INIT_DB_ON_START:-false}" == "true" ]]; then
   python scripts/init_db.py "${MUNICIPALITY}"

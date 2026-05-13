@@ -3,7 +3,7 @@ from pathlib import Path
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-from app.municipal_modules.setagaya2.dev.pattern_classifier import (
+from app.municipal_modules.setagaya.regular.dev.pattern_classifier import (
     classify_files,
     classify_pattern,
 )

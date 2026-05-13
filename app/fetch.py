@@ -7,30 +7,40 @@ from playwright.sync_api import sync_playwright
 # Ensure repository root is importable when running as a script
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
-# Fetchers are organized under `municipal_modules/<municipality>/fetchers`
-from municipal_modules.Tokyo.fetchers import TokyoNetReportFetcher
-from municipal_modules.setagaya.fetchers import SetagayaFetcher
-from municipal_modules.setagaya2.fetchers import Setagaya2Fetcher
+from app.municipal_modules import load_fetchers_by_municipality
 
-FETCHERS = {
-    "setagaya": SetagayaFetcher,
-    "setagaya2": Setagaya2Fetcher,
-    "Tokyo": TokyoNetReportFetcher,
-}
+FETCHERS_BY_MUNICIPALITY = load_fetchers_by_municipality()
 
 
 def main() -> None:
     parser = argparse.ArgumentParser(description="Fetch minutes for a municipality")
     parser.add_argument("--municipality", required=True, help="target municipality")
+    parser.add_argument(
+        "--fetcher",
+        default=None,
+        help="optional FETCHER_NAME to run only one session (e.g. SetagayaCommitteeFetcher). "
+        "If omitted, every fetcher registered for the municipality runs in order.",
+    )
     args = parser.parse_args()
 
-    fetcher_cls = FETCHERS.get(args.municipality)
-    if not fetcher_cls:
+    fetchers = FETCHERS_BY_MUNICIPALITY.get(args.municipality)
+    if not fetchers:
         raise ValueError(f"Unknown municipality: {args.municipality}")
 
+    if args.fetcher is not None:
+        if args.fetcher not in fetchers:
+            raise ValueError(
+                f"Unknown fetcher '{args.fetcher}' for {args.municipality}. "
+                f"Available: {sorted(fetchers)}"
+            )
+        selected = {args.fetcher: fetchers[args.fetcher]}
+    else:
+        selected = fetchers
+
     with sync_playwright() as playwright:
-        fetcher = fetcher_cls(playwright, args.municipality)
-        fetcher.run()
+        for fetcher_cls in selected.values():
+            fetcher = fetcher_cls(playwright, args.municipality)
+            fetcher.run()
 
 
 if __name__ == "__main__":

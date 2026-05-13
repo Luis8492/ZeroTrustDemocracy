@@ -1,17 +1,18 @@
-# ToDo
-- 「同一議題のほかの質問を表示」機能を追加
+# Zero Trust Democracy — 世田谷区議会版
 
-# Zero Trust Democracy
+**ZeroTrustDemocracy** は、議会の議事録を分かりやすい形でユーザーに提示することで、
+民主的な意思決定への市民参加を支援するプロジェクトです。本リポジトリは
+**世田谷区議会**向けに整備された配布物です。
 
-**ZeroTrustDemocracy**は、議会の議事録等のデータをより分かりやすい形でユーザーに提示することで、民主的な意思決定への市民参加を支援することを目的としています。
+別議会向けにフォークする場合は [`docs/FORK_GUIDE.md`](docs/FORK_GUIDE.md) を
+参照してください。
 
 ---
 
 ## 🎯 プロジェクトの目的
-現在は第一段階にありますが、将来的にはこのリポジトリはより大きなプロジェクトの一部となる予定です。
-- 地方議会の議事録を自動的に解析し、議員の発言を「質疑応答ペア（QA）」として構造化。
-- ユーザーがそれらのQAを匿名で評価し、政治家の姿勢や論点に対する自身の反応を統計的に分析・可視化。
-- クライアントサイドにデータを保持することで、ユーザーのプライバシーを最大限に尊重。
+- 世田谷区議会の議事録を自動的に解析し、議員の発言を「質疑応答ペア (QA)」として構造化。
+- ユーザーが QA を匿名で評価し、自分の評価傾向を統計的に分析・可視化。
+- 評価データはクライアント (IndexedDB) にのみ保持し、サーバーには一切送信しない。
 
 ## コンセプトの課題
 - 議事録部分：
@@ -75,12 +76,14 @@
 ## 📁 ディレクトリ構成
 
 - `app/` - バックエンドスクリプトと解析ツール
-  - `municipal_modules/` - 自治体ごとの実装
-    - `<municipality>/` - 各自治体のモジュール (`config/`, `fetchers/`, `parsers/`)
-    - `base/` - 共有の基底クラス
-- `frontend/` - クライアントサイドのHTMLとJavaScript
+  - `municipal_modules/setagaya/` - 世田谷区議会モジュール (統合)
+    - `committee/` - 委員会議事録 (`SetagayaCommitteeFetcher`)
+    - `regular/` - 定例会議事録 (`SetagayaRegularFetcher`)
+  - `municipal_modules/base/` - 共有の基底クラス
+- `frontend/` - クライアントサイドの HTML と JavaScript
 - `scripts/` - メンテナンス用の補助スクリプト
-- `db/` - SQLiteデータベースを格納するディレクトリ
+- `db/` - SQLite データベースを格納するディレクトリ
+- `docs/` - 開発者向けドキュメント (`FORK_GUIDE.md` 等)
 
 ---
 
@@ -96,10 +99,11 @@ pip install -r requirements.txt
 cd ZeroTrustDemocracy
 python3 -m uvicorn app.feederAPI:app --host 0.0.0.0 --port 8000
 
-# フロントエンド（別ターミナル）
+# フロントエンド（別ターミナル / Node 20+ 必須）
 cd frontend
-python3 -m http.server 8001
-# => アクセス: http://localhost:8001/index.html
+npm install
+npm run dev
+# => アクセス: http://localhost:8001/
 ```
 
 ### データベース初期化
@@ -107,8 +111,8 @@ python3 -m http.server 8001
 議事録を取得する前に、各自治体の SQLite データベースを初期化する必要があります。
 
 ```bash
-# 例: 世田谷区 (setagaya2) の DB を作成
-python scripts/init_db.py setagaya2
+# 委員会・定例会共用の DB を作成 (db/setagaya.db)
+python scripts/init_db.py setagaya
 ```
 
 `scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成し、`minutes.uuid` と `questions.uuid` を含める構成である。
@@ -194,7 +198,7 @@ docker compose up --build -d
 
 | 変数名 | 役割 | 既定値 |
 |--------|------|--------|
-| `MUNICIPALITY` | 処理対象の自治体を指定します。 | `Tokyo` |
+| `MUNICIPALITY` | 処理対象の自治体を指定します (`setagaya` または `setagaya2`)。 | `setagaya` |
 | `INIT_DB_ON_START` | コンテナ起動時に `scripts/init_db.py` を実行するかどうか。 | `false` |
 | `RUN_FETCH_ON_START` | コンテナ起動時に `app/fetch.py` と `app/minute_analyzer.py` を実行するか。 | `false` |
 | `UVICORN_HOST` / `UVICORN_PORT` | Uvicorn サーバーのホスト・ポート。 | `0.0.0.0` / `8000` |
@@ -206,7 +210,7 @@ docker compose up --build -d
 
 ```bash
 # docker-compose.yml で ./config:/app/config をマウント済みの場合
-# /app/config/config.yaml, /app/config/setagaya2.yaml などが優先される
+# /app/config/config.yaml, /app/config/setagaya.yaml などが優先される
 docker compose up --build
 
 # グローバル設定だけ別パスを使う場合
@@ -216,6 +220,6 @@ CONFIG_PATH=/app/config/production.yaml docker compose up --build
 自治体向けの SQLite データベースを事前に用意したい場合は、起動後に以下のように実行してください。
 
 ```bash
-# 例: setagaya2 の DB を初期化
-docker compose run --rm backend python scripts/init_db.py setagaya2
+# setagaya の DB を初期化 (委員会・定例会共用)
+docker compose run --rm backend python scripts/init_db.py setagaya
 ```

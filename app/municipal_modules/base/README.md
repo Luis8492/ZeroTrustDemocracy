@@ -93,5 +93,7 @@ QAs_topic = [
 ```
 ## 参考実装
 
-`app/municipal_modules/setagaya` 以下に、上記メソッドを実装した具体例があります。
-新しい自治体を追加する際はこのディレクトリを参考にしてください。
+`app/municipal_modules/setagaya/committee` (委員会、テキスト形式) と
+`app/municipal_modules/setagaya/regular` (定例会、HTML 形式) に、上記メソッドを
+実装した具体例があります。新しい議会・session を追加する際はこれらを参考に
+してください。
