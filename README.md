@@ -45,11 +45,26 @@
 
 ---
 
-### ✅ フロントエンド（Vanilla JS + IndexedDB）
-- ページ表示時に`/api/qa/next`を呼び出し、QAを表示
-- ユーザーが-3～+3で評価 → IndexedDBに保存（評価はクライアントにのみ保持）
-- 評価済みIDはIndexedDBから取得し、APIに渡して未評価QAを取得
-- (未実装)ある程度評価がたまってきたら、評価済みのQAのメタ情報をサーバーから取得し、評価結果と併せてユーザーの評価傾向を可視化(e.g.○○党の主張には賛成傾向)
+### ✅ フロントエンド (Svelte 5 + Vite + TypeScript)
+- ハッシュルーティングの SPA。`/` (評価)、`/result` (統計)、`/settings` (テーマ選択)
+- 評価ページで `/api/qa/next` から未評価 QA を取得し、-3〜+3 で評価
+- 評価データは IndexedDB (`EvalDB`) に保存され、サーバーには送信されない
+- ヘッダに累積評価カウンタを常時表示
+- 委員会名をタグとして表示
+
+### ✅ 統計ページ (`/result`)
+- 議員別 / 会派別の平均評価バーチャート (95% 信頼区間付き)
+- **論点マップ** (SVG): 委員会を円で、評価数=サイズ、平均評価=色、同一議員が登場する委員会同士をエッジで結ぶ
+- 議員 / 会派でのフィルタ、CSV エクスポート/インポート
+
+### ✅ テーマ機構
+- `<html data-theme="...">` + CSS 変数で見た目を切替
+- 同梱テーマ:
+  - `plain`: 標準
+  - `chat`: 質問者=右側青吹き出し / 答弁者=左側 / 委員長=中央システムメッセージ
+  - `scroll`: 縦書き和紙、右から左へ巻物のように読む
+  - `hud`: シアン基調のグラスモーフィズム SF UI
+- 選択はユーザーごとに IndexedDB に保存
 
 ---
 
@@ -64,12 +79,13 @@
 
 | 分類 | 技術 |
 |------|------|
-| バックエンド | Python 3, FastAPI, SQLite3 |
-| フロントエンド | HTML, JavaScript (ES Modules), IndexedDB |
-| クライアントDB | [idb](https://github.com/jakearchibald/idb) (IndexedDB wrapper) |
-| ローカルサーバー | `python3 -m http.server 8000` など |
+| バックエンド | Python 3, FastAPI, SQLite3, Playwright |
+| フロントエンド | Svelte 5, Vite, TypeScript |
+| クライアントDB | [idb](https://github.com/jakearchibald/idb) (IndexedDB ラッパー) |
+| グラフ描画 | Chart.js + chartjs-chart-error-bars (議員/会派別評価), SVG 直書き (論点マップ) |
+| ルーティング | svelte-spa-router (hash-based) |
 | 匿名化 | `anonymizer.py`（PIIリストによる置換） |
-| データ変換 | 議事録を構造化JSONへ変換するPythonスクリプト |
+| 配信 | 開発時は Vite (`npm run dev`), 本番は Nginx (`Dockerfile.frontend` 多段ビルド) |
 
 ---
 
@@ -80,7 +96,7 @@
     - `committee/` - 委員会議事録 (`SetagayaCommitteeFetcher`)
     - `regular/` - 定例会議事録 (`SetagayaRegularFetcher`)
   - `municipal_modules/base/` - 共有の基底クラス
-- `frontend/` - クライアントサイドの HTML と JavaScript
+- `frontend/` - Svelte 5 + Vite SPA (`src/`、ビルド成果物は `dist/`)
 - `scripts/` - メンテナンス用の補助スクリプト
 - `db/` - SQLite データベースを格納するディレクトリ
 - `docs/` - 開発者向けドキュメント (`FORK_GUIDE.md` 等)
@@ -92,19 +108,23 @@
 ### 初回セットアップ
 
 ```bash
-# 依存関係をインストール
+# 1) Python 依存をインストール
 pip install -r requirements.txt
+playwright install chromium      # 議事録取得時のみ必要
 
-# Python側 API サーバーを起動
-cd ZeroTrustDemocracy
-python3 -m uvicorn app.feederAPI:app --host 0.0.0.0 --port 8000
+# 2) API サーバーを起動 (リポジトリルートで)
+python -m uvicorn app.feederAPI:app --host 0.0.0.0 --port 8000
 
-# フロントエンド（別ターミナル / Node 20+ 必須）
+# 3) フロントエンド (別ターミナル / Node 20+ 必須)
 cd frontend
 npm install
 npm run dev
-# => アクセス: http://localhost:8001/
+# => http://localhost:8001/ （/api/* は :8000 にプロキシ）
 ```
+
+フロントを本番モードで配信する場合は `npm run build` で `frontend/dist/` を
+生成し、静的配信サーバーから配信してください (Docker Compose ではこれを Nginx で
+配信します)。
 
 ### データベース初期化
 
@@ -198,7 +218,7 @@ docker compose up --build -d
 
 | 変数名 | 役割 | 既定値 |
 |--------|------|--------|
-| `MUNICIPALITY` | 処理対象の自治体を指定します (`setagaya` または `setagaya2`)。 | `setagaya` |
+| `MUNICIPALITY` | 処理対象の議会を指定します。本リポジトリでは `setagaya` のみ。 | `setagaya` |
 | `INIT_DB_ON_START` | コンテナ起動時に `scripts/init_db.py` を実行するかどうか。 | `false` |
 | `RUN_FETCH_ON_START` | コンテナ起動時に `app/fetch.py` と `app/minute_analyzer.py` を実行するか。 | `false` |
 | `UVICORN_HOST` / `UVICORN_PORT` | Uvicorn サーバーのホスト・ポート。 | `0.0.0.0` / `8000` |
