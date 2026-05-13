@@ -3,11 +3,12 @@ from pydantic import BaseModel
 from typing import List, Dict, Any, Tuple
 import sqlite3, random, json, re, sys
 from pathlib import Path
-from anonymizer import Anonymizer
 from fastapi.middleware.cors import CORSMiddleware
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+sys.path.append(str(Path(__file__).resolve().parent))
 from config_loader import load, load_global, available_municipalities
+from anonymizer import Anonymizer
 
 
 def validate_municipality(name: str) -> str:

@@ -3,6 +3,7 @@ __pycache__/
 logs/*.log
 app/exports/*
 !app/exports/.gitkeep
+venv
 
 # Frontend build artifacts
 frontend/node_modules/
