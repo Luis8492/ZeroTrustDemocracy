@@ -29,6 +29,7 @@ export interface QAMeta {
 export interface EvaluationRecord {
   QA_id: number;
   eval: number;
+  importance: number;
 }
 
 export type ThemeName = 'plain' | 'chat' | 'scroll' | 'hud';

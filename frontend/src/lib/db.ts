@@ -13,7 +13,7 @@ interface ZTDDB extends DBSchema {
 }
 
 const DB_NAME = 'EvalDB';
-const DB_VERSION = 2;
+const DB_VERSION = 3;
 
 let dbPromise: Promise<IDBPDatabase<ZTDDB>> | null = null;
 
@@ -26,6 +26,11 @@ export function getDB(): Promise<IDBPDatabase<ZTDDB>> {
         }
         if (oldVersion < 2) {
           db.createObjectStore('settings');
+        }
+        if (oldVersion >= 1 && oldVersion < 3) {
+          // Schema change: importance を追加。旧データは破棄する。
+          db.deleteObjectStore('evaluations');
+          db.createObjectStore('evaluations', { keyPath: 'QA_id' });
         }
       },
     });

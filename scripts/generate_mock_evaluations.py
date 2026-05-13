@@ -4,8 +4,9 @@ Usage:
     python scripts/generate_mock_evaluations.py [--db DB_PATH] [-o OUTPUT]
 
 The script reads all question IDs from the SQLite database and assigns a
-random evaluation (-3 to +3) to each one, then writes a CSV file that can
-be imported via the frontend's "CSV で読み込み" button on the statistics page.
+random agreement score (-3 to +3) and importance score (0 to 3) to each
+one, then writes a CSV file that can be imported via the frontend's
+"CSV で読み込み" button on the statistics page.
 """
 
 import argparse
@@ -55,9 +56,9 @@ def main():
 
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
-        writer.writerow(["QA_id", "eval"])
+        writer.writerow(["QA_id", "eval", "importance"])
         for qa_id in ids:
-            writer.writerow([qa_id, rng.randint(-3, 3)])
+            writer.writerow([qa_id, rng.randint(-3, 3), rng.randint(0, 3)])
 
     print(f"Wrote {len(ids)} mock evaluations to {args.output}")
 

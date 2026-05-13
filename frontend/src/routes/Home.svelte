@@ -10,6 +10,7 @@
   let qa = $state<QA | null>(null);
   let allDone = $state(false);
   let evalValue = $state(0);
+  let importanceValue = $state(0);
   let busy = $state(false);
   let error = $state<string | null>(null);
 
@@ -23,6 +24,7 @@
         qa = res;
         allDone = false;
         evalValue = 0;
+        importanceValue = 0;
         window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         qa = null;
@@ -35,9 +37,9 @@
     }
   }
 
-  async function submitEval(value: number) {
+  async function submitEval(value: number, importance: number) {
     if (!qa) return;
-    await saveEvaluation({ QA_id: qa.id, eval: value });
+    await saveEvaluation({ QA_id: qa.id, eval: value, importance });
     await refreshEvaluatedCount();
     await loadNext();
   }
@@ -73,8 +75,12 @@
 
     <section class="eval">
       <h3>評価</h3>
-      <p class="hint">-3 (強く反対) 〜 +3 (強く賛成)</p>
-      <EvalControls bind:value={evalValue} disabled={busy} onSubmit={submitEval} />
+      <EvalControls
+        bind:evalValue
+        bind:importanceValue
+        disabled={busy}
+        onSubmit={submitEval}
+      />
       <button class="skip" type="button" disabled={busy} onclick={loadNext}>
         スキップして別の質疑を表示
       </button>
@@ -121,11 +127,6 @@
     font-size: 1rem;
     color: var(--text-muted);
     font-weight: 600;
-  }
-  .hint {
-    margin: 0 0 0.5rem;
-    color: var(--text-muted);
-    font-size: 0.85rem;
   }
   .skip {
     margin-top: 0.5rem;

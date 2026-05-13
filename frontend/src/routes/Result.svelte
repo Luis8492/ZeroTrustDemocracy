@@ -32,7 +32,7 @@
     BarWithErrorBar,
   );
 
-  type MetaWithEval = QAMeta & { eval?: number };
+  type MetaWithEval = QAMeta & { eval?: number; importance?: number };
 
   let count = $state(0);
   let busy = $state(true);
@@ -42,8 +42,10 @@
   let partyFilter = $state('');
   let questionerCanvas: HTMLCanvasElement | undefined = $state();
   let partyCanvas: HTMLCanvasElement | undefined = $state();
+  let topicImportanceCanvas: HTMLCanvasElement | undefined = $state();
   let questionerChart: Chart | undefined;
   let partyChart: Chart | undefined;
+  let topicImportanceChart: Chart | undefined;
 
   async function load() {
     busy = true;
@@ -57,8 +59,11 @@
       }
       const ids = evaluations.map((e) => e.QA_id);
       const metas = await fetchMetaData(ids);
-      const evalMap = new Map(evaluations.map((e) => [e.QA_id, e.eval]));
-      allData = metas.map((m) => ({ ...m, eval: evalMap.get(m.id) }));
+      const evalMap = new Map(evaluations.map((e) => [e.QA_id, e]));
+      allData = metas.map((m) => {
+        const rec = evalMap.get(m.id);
+        return { ...m, eval: rec?.eval, importance: rec?.importance };
+      });
     } catch (e) {
       error = (e as Error).message;
     } finally {
@@ -74,18 +79,48 @@
       (m) => m.eval,
       (m) => m.questioner,
     );
-    renderChart(questionerCanvas, questionerChart, questionerStats, '議員別平均評価', (c) => {
-      questionerChart = c;
-    });
+    renderChart(
+      questionerCanvas,
+      questionerChart,
+      questionerStats,
+      '議員別平均同意度',
+      { min: -3, max: 3 },
+      'rgba(37, 99, 235, 0.4)',
+      'rgba(37, 99, 235, 1)',
+      (c) => { questionerChart = c; },
+    );
 
     const partyStats = computeGroupedStats(
       allData.filter((m) => m.questioner_party),
       (m) => m.eval,
       (m) => m.questioner_party,
     );
-    renderChart(partyCanvas, partyChart, partyStats, '会派別平均評価', (c) => {
-      partyChart = c;
-    });
+    renderChart(
+      partyCanvas,
+      partyChart,
+      partyStats,
+      '会派別平均同意度',
+      { min: -3, max: 3 },
+      'rgba(37, 99, 235, 0.4)',
+      'rgba(37, 99, 235, 1)',
+      (c) => { partyChart = c; },
+    );
+
+    const topicImportanceStats = computeGroupedStats(
+      allData,
+      (m) => m.importance,
+      (m) => m.committee_name || '(委員会不明)',
+    );
+    renderChart(
+      topicImportanceCanvas,
+      topicImportanceChart,
+      topicImportanceStats,
+      '委員会別平均重要度',
+      { min: 0, max: 3 },
+      'rgba(217, 119, 6, 0.4)',
+      'rgba(217, 119, 6, 1)',
+      (c) => { topicImportanceChart = c; },
+    );
   }
 
   function renderChart(
@@ -93,6 +128,9 @@
     existing: Chart | undefined,
     stats: GroupStat[],
     label: string,
+    yRange: { min: number; max: number },
+    bg: string,
+    border: string,
     assign: (c: Chart) => void,
   ) {
     if (!canvas) return;
@@ -113,15 +151,15 @@
           {
             label,
             data,
-            backgroundColor: 'rgba(37, 99, 235, 0.4)',
-            borderColor: 'rgba(37, 99, 235, 1)',
+            backgroundColor: bg,
+            borderColor: border,
             borderWidth: 1,
           },
         ],
       },
       options: {
         responsive: true,
-        scales: { y: { min: -3, max: 3 } },
+        scales: { y: { min: yRange.min, max: yRange.max } },
       },
     };
     const chart = new Chart(canvas, config as unknown as ChartConfiguration);
@@ -143,7 +181,11 @@
   async function exportCSV() {
     const evaluations = await listEvaluations();
     if (!evaluations.length) return;
-    const csv = 'QA_id,eval\n' + evaluations.map((e) => `${e.QA_id},${e.eval}`).join('\n');
+    const csv =
+      'QA_id,eval,importance\n' +
+      evaluations
+        .map((e) => `${e.QA_id},${e.eval},${e.importance}`)
+        .join('\n');
     const blob = new Blob([csv], { type: 'text/csv' });
     const url = URL.createObjectURL(blob);
     const a = document.createElement('a');
@@ -159,11 +201,12 @@
     const text = await input.files[0].text();
     const lines = text.trim().split(/\r?\n/).slice(1);
     for (const line of lines) {
-      const [idStr, evalStr] = line.split(',');
+      const [idStr, evalStr, importanceStr] = line.split(',');
       const id = Number(idStr);
       const value = Number(evalStr);
-      if (!Number.isNaN(id) && !Number.isNaN(value)) {
-        await saveEvaluation({ QA_id: id, eval: value });
+      const importance = Number(importanceStr);
+      if (!Number.isNaN(id) && !Number.isNaN(value) && !Number.isNaN(importance)) {
+        await saveEvaluation({ QA_id: id, eval: value, importance });
       }
     }
     await refreshEvaluatedCount();
@@ -187,6 +230,7 @@
   <section class="charts">
     <canvas bind:this={questionerCanvas} width="800" height="320"></canvas>
     <canvas bind:this={partyCanvas} width="800" height="320"></canvas>
+    <canvas bind:this={topicImportanceCanvas} width="800" height="320"></canvas>
   </section>
 
   <TopicMap items={allData} />
@@ -218,7 +262,10 @@
         <header>
           <strong>{item.questioner || '不明'}</strong>
           {#if item.questioner_party}<span class="party">{item.questioner_party}</span>{/if}
-          {#if item.eval !== undefined}<span class="eval">評価 {item.eval > 0 ? `+${item.eval}` : item.eval}</span>{/if}
+          <span class="eval">
+            {#if item.eval !== undefined}同意 {item.eval > 0 ? `+${item.eval}` : item.eval}{/if}
+            {#if item.importance !== undefined}<span class="importance">重要度 {item.importance}</span>{/if}
+          </span>
         </header>
         <p class="committee">
           <span class="tag">{item.committee_name}</span>
@@ -279,7 +326,8 @@
     flex-wrap: wrap;
   }
   .party { color: var(--text-muted); font-size: 0.9rem; }
-  .eval { color: var(--accent); font-weight: 600; margin-left: auto; }
+  .eval { color: var(--accent); font-weight: 600; margin-left: auto; display: inline-flex; gap: 0.6rem; align-items: baseline; }
+  .importance { color: rgb(217, 119, 6); font-weight: 600; }
   .committee {
     margin: 0.25rem 0 0.75rem;
     color: var(--text-muted);
