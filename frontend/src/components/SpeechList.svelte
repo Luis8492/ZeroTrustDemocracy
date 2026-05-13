@@ -196,43 +196,33 @@
   }
   :global([data-theme='chat']) .speech.chair .meta { display: none; }
 
-  /* ---------- Scroll (vertical-rl 和紙) theme overrides ---------- */
+  /* ---------- Scroll (和紙) theme overrides ---------- */
   :global([data-theme='scroll']) .speeches {
-    writing-mode: vertical-rl;
-    flex-direction: row;
-    flex-wrap: nowrap;
     gap: 1.25rem;
     padding: 1rem 0;
-    overflow-x: auto;
-    max-height: 65vh;
     line-height: 2;
     border-top: 2px solid var(--border);
     border-bottom: 2px solid var(--border);
-  }
-  :global([data-theme='scroll']) .speech {
-    grid-template-columns: 1fr;
   }
   :global([data-theme='scroll']) .speech .avatar { display: none; }
   :global([data-theme='scroll']) .bubble {
     background: transparent;
     border: none;
     padding: 0 0.5rem;
-    min-width: 1.6rem;
   }
   :global([data-theme='scroll']) .meta {
-    writing-mode: vertical-rl;
     font-size: 0.75rem;
     margin: 0 0 0.5rem;
     opacity: 0.7;
   }
   :global([data-theme='scroll']) .speech.questioner .bubble {
-    border-right: 3px double var(--questioner-text);
-    padding-right: 0.6rem;
+    border-left: 3px double var(--questioner-text);
+    padding-left: 0.6rem;
     color: var(--questioner-text);
   }
   :global([data-theme='scroll']) .speech.answerer .bubble {
-    border-right: 3px solid var(--answerer-text);
-    padding-right: 0.6rem;
+    border-left: 3px solid var(--answerer-text);
+    padding-left: 0.6rem;
     color: var(--answerer-text);
   }
   :global([data-theme='scroll']) .speech.chair .bubble {

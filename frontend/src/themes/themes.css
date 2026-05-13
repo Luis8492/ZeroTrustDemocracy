@@ -116,10 +116,7 @@ button.primary:hover { filter: brightness(0.95); background: var(--accent); }
   background: var(--bg);
 }
 
-/* Scroll theme: vertical-rl 古文書 / 和紙 aesthetic.
- * Body of speeches scrolls horizontally (right-to-left). Chrome stays
- * horizontal so navigation remains familiar.
- */
+/* Scroll theme: 古文書 / 和紙 aesthetic (horizontal writing). */
 [data-theme='scroll'] {
   --bg: #efe1c0;
   --surface: #f8eed3;

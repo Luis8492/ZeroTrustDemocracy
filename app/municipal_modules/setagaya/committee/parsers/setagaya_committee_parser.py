@@ -117,141 +117,121 @@ class SetagayaCommitteeParser(BaseMinuteParser):
             transition_log += topic_body[i]["mark"]
         return transition_log
 
+    # -- State machine for grouping speeches into QA sequences --------
+    #
+    # States:
+    #   "start"          – waiting for a ◆ questioner to open a QA
+    #   "qa"             – inside a QA between a questioner and respondents
+    #   "party_comments" – consecutive ◆ speeches (会派意見表明)
+    #   "chair_skip"     – skipping ○ chair speeches after an interrupted ◆
+    #
+    # The current questioner name is tracked in `qa_owner` (set when
+    # entering "qa").  Transition logic depends on the current speech's
+    # mark and — for "start" / "chair_skip" — on the *next* speech's mark
+    # (one-token look-ahead).
+
+    def _extract_topic_QAs(
+        self, topic_body: List[Dict[str, Any]], file_name: str = ""
+    ) -> List[List[Dict[str, Any]]]:
+        """Split *topic_body* (speeches after the intro) into QA sequences."""
+        QAs: List[List[Dict[str, Any]]] = []
+        seq: List[Dict[str, Any]] = []
+        state = "start"
+        qa_owner = ""
+        pos = 0
+
+        def _peek_mark() -> str | None:
+            return topic_body[pos + 1]["mark"] if pos + 1 < len(topic_body) else None
+
+        def _flush() -> None:
+            nonlocal seq
+            if seq:
+                QAs.append(seq)
+                seq = []
+
+        def _error(ctx: str) -> RuntimeError:
+            marks = "".join(s["mark"] for s in topic_body[: pos + 1])
+            logger.error(
+                "[ERROR] 状態遷移エラー file=%s state=%s marks=%s",
+                file_name, state, marks,
+            )
+            return RuntimeError(
+                f"Unknown state transition ({state}>{ctx}) [{marks}]"
+            )
+
+        while pos < len(topic_body):
+            speech = topic_body[pos]
+            mark = speech["mark"]
+            next_mark = _peek_mark()
+
+            if state == "start":
+                if mark != "◆":
+                    raise _error(mark)
+                _flush()
+                seq = [speech]
+                if next_mark == "◎":
+                    state, qa_owner = "qa", speech["name"]
+                elif next_mark == "◆":
+                    state = "party_comments"
+                elif next_mark == "○":
+                    _flush()          # save the lone ◆ as its own sequence
+                    state = "chair_skip"
+                elif next_mark is None:
+                    pass              # last speech — will be flushed after loop
+                else:
+                    raise _error(f"{mark}>{next_mark}")
+
+            elif state == "qa":
+                if mark == "◆" and speech["name"] != qa_owner:
+                    # Different questioner → start a new QA
+                    _flush()
+                    seq = [speech]
+                    qa_owner = speech["name"]
+                else:
+                    # Same questioner (◆), respondent (◎), or chair (○):
+                    # all belong to the current QA sequence.
+                    seq.append(speech)
+
+            elif state == "party_comments":
+                if mark == "◆":
+                    _flush()
+                    seq = [speech]
+                else:
+                    # Non-◆ ends the party-comment run
+                    break
+
+            elif state == "chair_skip":
+                if mark != "◆":
+                    pass              # skip ○/◎ chair / admin speeches
+                else:
+                    seq = [speech]
+                    if next_mark == "◎":
+                        state, qa_owner = "qa", speech["name"]
+                    elif next_mark == "◆":
+                        state = "party_comments"
+                    elif next_mark is None:
+                        pass
+                    else:
+                        # e.g. ◆→○ again — stay in chair_skip
+                        _flush()
+                        state = "chair_skip"
+
+            else:
+                raise _error(f"unknown state {state}")
+
+            pos += 1
+
+        _flush()
+        return QAs
+
     def extract_QAs(self, minute: Dict[str, Any]) -> List[Any]:
         minute_QAs = []
+        file_name = minute.get("file_name", "")
         for topic in minute["topics"]:
-            QAs = []
             intro, topic_body = self._get_topic_intro_and_body(topic)
-            QAs.append(intro)
-            QA_sequence = []
-            state = "start"
-            for speech_index in range(len(topic_body)):
-                if state == "start":
-                    if topic_body[speech_index]["mark"] != "◆":
-                        transition_log = self._build_state_transition_log(topic_body, speech_index)
-                        raise RuntimeError(
-                            "Start時にmarkが◆でないことは想定されていません.[" + transition_log + "]"
-                        )
-                    elif speech_index + 1 >= len(topic_body):
-                        # Last speech in topic — treat as a standalone comment
-                        QAs.append(QA_sequence)
-                        QA_sequence = [topic_body[speech_index]]
-                        break
-                    elif topic_body[speech_index + 1]["mark"] == "◎":
-                        new_state = "QA" + topic_body[speech_index]["name"]
-                        QAs.append(QA_sequence)
-                        QA_sequence = [topic_body[speech_index]]
-                        state = new_state
-                    elif topic_body[speech_index + 1]["mark"] == "◆":
-                        new_state = "party_comments"
-                        QAs.append(QA_sequence)
-                        QA_sequence = [topic_body[speech_index]]
-                        state = new_state
-                    elif topic_body[speech_index + 1]["mark"] == "○":
-                        # Questioner spoke but chair interrupted/moved on;
-                        # treat the ◆ speech as a standalone comment and
-                        # let the next iteration handle the ○ via the QA state
-                        # by resetting to start after skipping the chair speech.
-                        QAs.append(QA_sequence)
-                        QA_sequence = [topic_body[speech_index]]
-                        QAs.append(QA_sequence)
-                        QA_sequence = []
-                        # Stay in "start" — the for-loop will advance to the ○
-                        # speech, which will be handled by the chair-skip below.
-                        state = "chair_skip"
-                    else:
-                        transition_log = self._build_state_transition_log(topic_body, speech_index + 1)
-                        message = f"[ERROR] 状態遷移エラー"
-                        logger.error(message)
-                        message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
-                        logger.error(message)
-                        message = (
-                            f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
-                        )
-                        logger.error(message)
-                        logger.error("")
-                        raise RuntimeError(
-                            "Unknown state transition.(" + state + ">?)[" + transition_log + "]"
-                        )
-                elif state[:2] == "QA":
-                    if topic_body[speech_index]["mark"] != "○":
-                        if topic_body[speech_index]["mark"] == "◆":
-                            if topic_body[speech_index]["name"] != state[2:]:
-                                new_state = "QA" + topic_body[speech_index]["name"]
-                                QAs.append(QA_sequence)
-                                QA_sequence = [topic_body[speech_index]]
-                                state = new_state
-                            else:
-                                QA_sequence.append(topic_body[speech_index])
-                        else:
-                            QA_sequence.append(topic_body[speech_index])
-                    else:
-                        for i in range(speech_index, len(topic_body)):
-                            if topic_body[i]["mark"] == "◆":
-                                if i + 1 < len(topic_body):
-                                    if topic_body[i + 1]["mark"] == "◆":
-                                        new_state = "party_comments"
-                                        QAs.append(QA_sequence)
-                                        QAs.append([topic_body[i]])
-                                        QAs.append([topic_body[i + 1]])
-                                        QA_sequence = []
-                                        speech_index = i + 1 # これなに?
-                                        state = new_state
-                                        break
-                                    elif topic_body[i + 1]["mark"] == "◎":
-                                        if topic_body[i]["name"] == state[2:]:
-                                            QA_sequence.append(topic_body[i])
-                                            QA_sequence.append(topic_body[i + 1])
-                                            speech_index = i + 1 # これなに?
-                                            break
-                                        else:
-                                            new_state = "QA" + topic_body[i]["name"]
-                                            QAs.append(QA_sequence)
-                                            QA_sequence = [topic_body[i], topic_body[i + 1]]
-                                            speech_index = i + 1 # これなに?
-                                            state = new_state
-                                            break
-                                    else:
-                                        transition_log = self._build_state_transition_log(topic_body, i + 1)
-                                        message = f"[ERROR] 元議事録ファイル: {minute.get('file_name', '')}"
-                                        logger.error(message)
-                                        message = (
-                                            f"[ERROR] 当該シークエンスの最初: {json.dumps(topic_body[speech_index], ensure_ascii=False)}"
-                                        )
-                                        logger.error(message)
-                                        logger.error("")
-                                        raise RuntimeError(
-                                            "Unknown state transition.(" + state + ">?)[" + transition_log + "]"
-                                        )
-                                else:
-                                    break
-                            else:
-                                QA_sequence.append(topic_body[i])
-                elif state == "chair_skip":
-                    # Skipping ○ (chair) speeches until we find a ◆ to
-                    # restart QA extraction, or reach end of topic.
-                    if topic_body[speech_index]["mark"] == "◆":
-                        QA_sequence = [topic_body[speech_index]]
-                        if speech_index + 1 < len(topic_body) and topic_body[speech_index + 1]["mark"] == "◎":
-                            state = "QA" + topic_body[speech_index]["name"]
-                        elif speech_index + 1 < len(topic_body) and topic_body[speech_index + 1]["mark"] == "◆":
-                            state = "party_comments"
-                        elif speech_index + 1 >= len(topic_body):
-                            break
-                        else:
-                            state = "start"
-                    # else: skip ○/◎ chair/admin speeches
-                elif state == "party_comments":
-                    if topic_body[speech_index]["mark"] == "◆":
-                        QAs.append(QA_sequence)
-                        QA_sequence = [topic_body[speech_index]]
-                    else:
-                        break
-                else:
-                    transition_log = self._build_state_transition_log(topic_body, speech_index + 1)
-                    raise RuntimeError("Unknown state. (" + state + ")[" + transition_log + "]")
-            QAs.append(QA_sequence)
-            minute_QAs.append(QAs)
+            topic_QAs: List[List[Dict[str, Any]]] = [intro]
+            topic_QAs.extend(self._extract_topic_QAs(topic_body, file_name))
+            minute_QAs.append(topic_QAs)
         return minute_QAs
 
     def convert(self, text: str) -> Dict[str, Any]:

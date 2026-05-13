@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { onMount } from 'svelte';
+  import { onMount, tick } from 'svelte';
   import {
     Chart,
     BarController,
@@ -59,12 +59,13 @@
       const metas = await fetchMetaData(ids);
       const evalMap = new Map(evaluations.map((e) => [e.QA_id, e.eval]));
       allData = metas.map((m) => ({ ...m, eval: evalMap.get(m.id) }));
-      renderCharts();
     } catch (e) {
       error = (e as Error).message;
     } finally {
       busy = false;
     }
+    await tick();
+    renderCharts();
   }
 
   function renderCharts() {
