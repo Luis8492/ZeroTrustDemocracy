@@ -54,7 +54,7 @@ def analyze_unprocessed_minutes(
         rows = query_not_analyzed_data(cur, fname)
         logger.info(f"[INFO] {fname}: 未分析のファイル数 {len(rows)}")
         for minute_id, file_name in rows:
-            file_path = "raw_minutes/" + file_name
+            file_path = os.path.join(os.path.dirname(__file__), "raw_minutes", file_name)
             if not os.path.exists(file_path):
                 logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
                 continue

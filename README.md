@@ -137,6 +137,36 @@ python scripts/init_db.py setagaya
 
 `scripts/init_db.py` は `minutes`, `meetings`, `downloaded_minutes_url_helper`, `questions` などのテーブルを生成し、`minutes.uuid` と `questions.uuid` を含める構成である。
 
+### 議事録データの取得・解析
+
+データベースを初期化したら、以下の手順で議事録データを取得・解析できます。
+
+#### 1. 議事録の取得（フェッチ）
+
+```bash
+python app/fetch.py --municipality setagaya
+```
+
+Playwright を使って議会議事録サイトからテキストをスクレイピングし、`app/raw_minutes/` に保存します。取得した各 URL は `minutes` テーブルに `analyzed=0` として記録されます。
+
+> Playwright のブラウザが必要です。ローカル実行の場合は事前に `playwright install chromium` を実行してください。
+
+#### 2. 議事録の解析（パース）
+
+```bash
+python app/minute_analyzer.py --municipality setagaya
+```
+
+未解析の行（`analyzed=0`）を読み取り、パーサーで構造化された質疑応答ペア（QA）を生成して `questions` テーブルに書き込みます。`--municipality` を省略するとすべての自治体を処理します。
+
+#### Docker 経由での実行
+
+Docker Compose を使う場合は、環境変数でコンテナ起動時に自動的に取得・解析を行えます。
+
+```bash
+INIT_DB_ON_START=true RUN_FETCH_ON_START=true MUNICIPALITY=setagaya docker compose up --build
+```
+
 ---
 
 ## 🐳 Docker での実行

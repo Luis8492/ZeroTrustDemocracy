@@ -132,6 +132,11 @@ class SetagayaCommitteeParser(BaseMinuteParser):
                         raise RuntimeError(
                             "Start時にmarkが◆でないことは想定されていません.[" + transition_log + "]"
                         )
+                    elif speech_index + 1 >= len(topic_body):
+                        # Last speech in topic — treat as a standalone comment
+                        QAs.append(QA_sequence)
+                        QA_sequence = [topic_body[speech_index]]
+                        break
                     elif topic_body[speech_index + 1]["mark"] == "◎":
                         new_state = "QA" + topic_body[speech_index]["name"]
                         QAs.append(QA_sequence)
@@ -142,6 +147,18 @@ class SetagayaCommitteeParser(BaseMinuteParser):
                         QAs.append(QA_sequence)
                         QA_sequence = [topic_body[speech_index]]
                         state = new_state
+                    elif topic_body[speech_index + 1]["mark"] == "○":
+                        # Questioner spoke but chair interrupted/moved on;
+                        # treat the ◆ speech as a standalone comment and
+                        # let the next iteration handle the ○ via the QA state
+                        # by resetting to start after skipping the chair speech.
+                        QAs.append(QA_sequence)
+                        QA_sequence = [topic_body[speech_index]]
+                        QAs.append(QA_sequence)
+                        QA_sequence = []
+                        # Stay in "start" — the for-loop will advance to the ○
+                        # speech, which will be handled by the chair-skip below.
+                        state = "chair_skip"
                     else:
                         transition_log = self._build_state_transition_log(topic_body, speech_index + 1)
                         message = f"[ERROR] 状態遷移エラー"
@@ -210,6 +227,20 @@ class SetagayaCommitteeParser(BaseMinuteParser):
                                     break
                             else:
                                 QA_sequence.append(topic_body[i])
+                elif state == "chair_skip":
+                    # Skipping ○ (chair) speeches until we find a ◆ to
+                    # restart QA extraction, or reach end of topic.
+                    if topic_body[speech_index]["mark"] == "◆":
+                        QA_sequence = [topic_body[speech_index]]
+                        if speech_index + 1 < len(topic_body) and topic_body[speech_index + 1]["mark"] == "◎":
+                            state = "QA" + topic_body[speech_index]["name"]
+                        elif speech_index + 1 < len(topic_body) and topic_body[speech_index + 1]["mark"] == "◆":
+                            state = "party_comments"
+                        elif speech_index + 1 >= len(topic_body):
+                            break
+                        else:
+                            state = "start"
+                    # else: skip ○/◎ chair/admin speeches
                 elif state == "party_comments":
                     if topic_body[speech_index]["mark"] == "◆":
                         QAs.append(QA_sequence)
