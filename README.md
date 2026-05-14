@@ -1,3 +1,5 @@
+👉 [Support the project](https://buymeacoffee.com/luis8492)
+
 # Zero Trust Democracy — 世田谷区議会版
 
 **ZeroTrustDemocracy** は、議会の議事録を分かりやすい形でユーザーに提示することで、
