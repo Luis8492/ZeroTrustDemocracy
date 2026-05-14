@@ -3,6 +3,7 @@
   import { fetchNextQA, isQA } from '../lib/api';
   import { listEvaluatedIDs, saveEvaluation } from '../lib/db';
   import { refreshEvaluatedCount } from '../lib/stores';
+  import { celebrate } from '../lib/confetti';
   import type { QA } from '../lib/types';
   import SpeechList from '../components/SpeechList.svelte';
   import EvalControls from '../components/EvalControls.svelte';
@@ -52,6 +53,7 @@
     await saveEvaluation({ QA_id: qa.id, eval: value, importance });
     await refreshEvaluatedCount();
     showToast(speaker, party);
+    celebrate();
     await loadNext();
   }
 
