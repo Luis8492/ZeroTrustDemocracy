@@ -4,11 +4,13 @@
   import { evaluatedCount, initStores } from './lib/stores';
   import Home from './routes/Home.svelte';
   import Result from './routes/Result.svelte';
+  import EvalHistory from './routes/EvalHistory.svelte';
   import Settings from './routes/Settings.svelte';
 
   const routes = {
     '/': Home,
     '/result': Result,
+    '/history': EvalHistory,
     '/settings': Settings,
   };
 
@@ -25,6 +27,7 @@
   <nav class="links">
     <a href="/" use:link>評価</a>
     <a href="/result" use:link>統計</a>
+    <a href="/history" use:link>評価履歴</a>
     <a href="/settings" use:link>設定</a>
   </nav>
   <span class="counter" title="累積評価数">評価済 {$evaluatedCount}</span>

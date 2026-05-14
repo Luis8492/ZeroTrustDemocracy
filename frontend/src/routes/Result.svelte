@@ -38,8 +38,6 @@
   let busy = $state(true);
   let error = $state<string | null>(null);
   let allData = $state<MetaWithEval[]>([]);
-  let questionerFilter = $state('');
-  let partyFilter = $state('');
   let questionerCanvas: HTMLCanvasElement | undefined = $state();
   let partyCanvas: HTMLCanvasElement | undefined = $state();
   let topicImportanceCanvas: HTMLCanvasElement | undefined = $state();
@@ -166,18 +164,6 @@
     assign(chart);
   }
 
-  function filtered(): MetaWithEval[] {
-    return allData.filter(
-      (d) =>
-        (questionerFilter === '' || d.questioner === questionerFilter) &&
-        (partyFilter === '' || d.questioner_party === partyFilter),
-    );
-  }
-
-  function uniqueSorted(values: (string | undefined)[]): string[] {
-    return [...new Set(values.filter((v): v is string => Boolean(v)))].sort();
-  }
-
   async function exportCSV() {
     const evaluations = await listEvaluations();
     if (!evaluations.length) return;
@@ -235,52 +221,7 @@
 
   <TopicMap items={allData} />
 
-  <section class="filters">
-    <label>
-      議員
-      <select bind:value={questionerFilter}>
-        <option value="">すべて</option>
-        {#each uniqueSorted(allData.map((d) => d.questioner)) as q (q)}
-          <option value={q}>{q}</option>
-        {/each}
-      </select>
-    </label>
-    <label>
-      会派
-      <select bind:value={partyFilter}>
-        <option value="">すべて</option>
-        {#each uniqueSorted(allData.map((d) => d.questioner_party)) as p (p)}
-          <option value={p}>{p}</option>
-        {/each}
-      </select>
-    </label>
-  </section>
-
-  <section class="qa-list">
-    {#each filtered() as item (item.id)}
-      <article class="qa-card">
-        <header>
-          <strong>{item.questioner || '不明'}</strong>
-          {#if item.questioner_party}<span class="party">{item.questioner_party}</span>{/if}
-          <span class="eval">
-            {#if item.eval !== undefined}同意 {item.eval > 0 ? `+${item.eval}` : item.eval}{/if}
-            {#if item.importance !== undefined}<span class="importance">重要度 {item.importance}</span>{/if}
-          </span>
-        </header>
-        <p class="committee">
-          <span class="tag">{item.committee_name}</span>
-          <span class="date">{item.committee_date}</span>
-        </p>
-        <ul>
-          {#each item.QA as q, i (i)}
-            <li>{q.mark}{q.comment}</li>
-          {/each}
-        </ul>
-      </article>
-    {:else}
-      <p>該当する QA はありません</p>
-    {/each}
-  </section>
+  <p class="history-link"><a href="#/history">評価履歴で個別の発言を確認する →</a></p>
 {/if}
 
 <section class="io">
@@ -299,61 +240,16 @@
     gap: 1.5rem;
     margin: 1rem 0;
   }
-  .filters {
-    display: flex;
-    gap: 1rem;
-    flex-wrap: wrap;
-    margin: 1rem 0;
+  .history-link {
+    margin: 1.5rem 0;
   }
-  .filters select {
-    margin-left: 0.25rem;
-  }
-  .qa-list {
-    display: flex;
-    flex-direction: column;
-    gap: 1rem;
-  }
-  .qa-card {
-    border: 1px solid var(--border);
-    background: var(--surface);
-    border-radius: var(--radius);
-    padding: 1rem;
-  }
-  .qa-card header {
-    display: flex;
-    gap: 0.75rem;
-    align-items: baseline;
-    flex-wrap: wrap;
-  }
-  .party { color: var(--text-muted); font-size: 0.9rem; }
-  .eval { color: var(--accent); font-weight: 600; margin-left: auto; display: inline-flex; gap: 0.6rem; align-items: baseline; }
-  .importance { color: rgb(217, 119, 6); font-weight: 600; }
-  .committee {
-    margin: 0.25rem 0 0.75rem;
-    color: var(--text-muted);
-    font-size: 0.9rem;
-    display: flex;
-    gap: 0.5rem;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-  .committee .tag {
-    padding: 0.15rem 0.5rem;
-    border-radius: 999px;
-    background: var(--accent);
-    color: var(--accent-contrast);
+  .history-link a {
+    color: var(--accent);
+    text-decoration: none;
     font-weight: 600;
-    font-size: 0.78rem;
   }
-  .committee .date { color: var(--text-muted); }
-  .qa-card ul {
-    margin: 0;
-    padding-left: 1.25rem;
-    list-style: '・ ';
-  }
-  .qa-card li {
-    margin-bottom: 0.25rem;
-    white-space: pre-wrap;
+  .history-link a:hover {
+    text-decoration: underline;
   }
   .io {
     margin-top: 2rem;
