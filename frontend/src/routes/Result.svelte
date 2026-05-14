@@ -36,10 +36,59 @@
   type MetaWithEval = QAMeta & { eval?: number; importance?: number };
 
   // Progressive unlock thresholds (件数).
-  const TH_PARTY = 0;
+  const TH_PARTY = 3;
   const TH_COMMITTEE = 5;
   const TH_QUESTIONER = 15;
   const TH_TOPIC_MAP = 30;
+
+  // ロック中のグラフ背面に置くダミーデータ。実値は読めない（ブラー＋オーバーレイ）
+  // ので、形状だけそれっぽく見せれば十分。
+  const DUMMY_PARTY_STATS: GroupStat[] = [
+    { key: '◆会派', mean: 1.6, ci: 0.5, count: 8 },
+    { key: '◇会派', mean: 0.7, ci: 0.4, count: 6 },
+    { key: '□会派', mean: -0.4, ci: 0.6, count: 5 },
+    { key: '△会派', mean: -1.3, ci: 0.7, count: 4 },
+  ];
+  const DUMMY_COMMITTEE_STATS: GroupStat[] = [
+    { key: '総務', mean: 2.2, ci: 0.3, count: 11 },
+    { key: '福祉保健', mean: 1.7, ci: 0.4, count: 9 },
+    { key: '都市整備', mean: 1.3, ci: 0.5, count: 7 },
+    { key: '区民生活', mean: 0.9, ci: 0.4, count: 5 },
+    { key: '文教', mean: 0.5, ci: 0.5, count: 4 },
+  ];
+  const DUMMY_QUESTIONER_STATS: GroupStat[] = [
+    { key: '議員A', mean: 1.9, ci: 0.4, count: 6 },
+    { key: '議員B', mean: 1.2, ci: 0.5, count: 5 },
+    { key: '議員C', mean: 0.4, ci: 0.6, count: 4 },
+    { key: '議員D', mean: -0.7, ci: 0.7, count: 4 },
+    { key: '議員E', mean: -1.6, ci: 0.6, count: 3 },
+  ];
+
+  function makeDummyTopicItems(): MetaWithEval[] {
+    const committees = ['総務委員会', '福祉保健委員会', '都市整備委員会', '区民生活委員会', '文教委員会', '企画総務委員会'];
+    const questioners = ['議員 A', '議員 B', '議員 C', '議員 D'];
+    const items: MetaWithEval[] = [];
+    let id = -1;
+    committees.forEach((c, ci) => {
+      const n = 4 - (ci % 3);
+      for (let i = 0; i < n; i++) {
+        items.push({
+          id: id--,
+          uuid: `dummy-${ci}-${i}`,
+          questioner: questioners[(ci + i) % questioners.length],
+          questioner_party: '',
+          committee_date: '',
+          committee_name: c,
+          topic_intro: [],
+          QA: [],
+          eval: ((ci + i) % 5) - 2,
+          importance: (ci + i) % 4,
+        });
+      }
+    });
+    return items;
+  }
+  const DUMMY_TOPIC_ITEMS = makeDummyTopicItems();
 
   let count = $state(0);
   let busy = $state(true);
@@ -60,15 +109,15 @@
       count = evaluations.length;
       if (count === 0) {
         allData = [];
-        return;
+      } else {
+        const ids = evaluations.map((e) => e.QA_id);
+        const metas = await fetchMetaData(ids);
+        const evalMap = new Map(evaluations.map((e) => [e.QA_id, e]));
+        allData = metas.map((m) => {
+          const rec = evalMap.get(m.id);
+          return { ...m, eval: rec?.eval, importance: rec?.importance };
+        });
       }
-      const ids = evaluations.map((e) => e.QA_id);
-      const metas = await fetchMetaData(ids);
-      const evalMap = new Map(evaluations.map((e) => [e.QA_id, e]));
-      allData = metas.map((m) => {
-        const rec = evalMap.get(m.id);
-        return { ...m, eval: rec?.eval, importance: rec?.importance };
-      });
     } catch (e) {
       error = (e as Error).message;
     } finally {
@@ -79,11 +128,14 @@
   }
 
   function renderCharts() {
-    const partyStats = computeGroupedStats(
-      allData.filter((m) => m.questioner_party),
-      (m) => m.eval,
-      (m) => m.questioner_party,
-    );
+    const partyStats =
+      count < TH_PARTY
+        ? DUMMY_PARTY_STATS
+        : computeGroupedStats(
+            allData.filter((m) => m.questioner_party),
+            (m) => m.eval,
+            (m) => m.questioner_party,
+          );
     renderChart(
       partyCanvas,
       partyChart,
@@ -95,11 +147,14 @@
       (c) => { partyChart = c; },
     );
 
-    const topicImportanceStats = computeGroupedStats(
-      allData,
-      (m) => m.importance,
-      (m) => m.committee_name || '(委員会不明)',
-    );
+    const topicImportanceStats =
+      count < TH_COMMITTEE
+        ? DUMMY_COMMITTEE_STATS
+        : computeGroupedStats(
+            allData,
+            (m) => m.importance,
+            (m) => m.committee_name || '(委員会不明)',
+          );
     renderChart(
       topicImportanceCanvas,
       topicImportanceChart,
@@ -111,11 +166,14 @@
       (c) => { topicImportanceChart = c; },
     );
 
-    const questionerStats = computeGroupedStats(
-      allData,
-      (m) => m.eval,
-      (m) => m.questioner,
-    );
+    const questionerStats =
+      count < TH_QUESTIONER
+        ? DUMMY_QUESTIONER_STATS
+        : computeGroupedStats(
+            allData,
+            (m) => m.eval,
+            (m) => m.questioner,
+          );
     renderChart(
       questionerCanvas,
       questionerChart,
@@ -250,7 +308,7 @@
       currentCount={count}
       description="委員会ごとの評価分布を俯瞰するネットワーク図。"
     >
-      <TopicMap items={allData} />
+      <TopicMap items={count < TH_TOPIC_MAP ? DUMMY_TOPIC_ITEMS : allData} />
     </Locked>
   </section>
 

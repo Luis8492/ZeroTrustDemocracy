@@ -13,7 +13,9 @@ interface ZTDDB extends DBSchema {
 }
 
 const DB_NAME = 'EvalDB';
-const DB_VERSION = 3;
+// v4: 過去のアップグレード途中の壊れた DB を回復させるため、
+// 「必要なストアを冪等に揃える」処理に切り替えた。
+const DB_VERSION = 4;
 
 let dbPromise: Promise<IDBPDatabase<ZTDDB>> | null = null;
 
@@ -21,16 +23,21 @@ export function getDB(): Promise<IDBPDatabase<ZTDDB>> {
   if (!dbPromise) {
     dbPromise = openDB<ZTDDB>(DB_NAME, DB_VERSION, {
       upgrade(db, oldVersion) {
-        if (oldVersion < 1) {
-          db.createObjectStore('evaluations', { keyPath: 'QA_id' });
-        }
-        if (oldVersion < 2) {
-          db.createObjectStore('settings');
-        }
-        if (oldVersion >= 1 && oldVersion < 3) {
-          // Schema change: importance を追加。旧データは破棄する。
+        // v3 でスキーマ変更（importance 追加）。v1〜v2 からの移行時のみ
+        // 旧データを破棄する。store が無いケースもあるので存在チェック。
+        if (
+          oldVersion >= 1 &&
+          oldVersion < 3 &&
+          db.objectStoreNames.contains('evaluations')
+        ) {
           db.deleteObjectStore('evaluations');
+        }
+        // 必須ストアを冪等に作成（途中で壊れた DB も自己修復する）。
+        if (!db.objectStoreNames.contains('evaluations')) {
           db.createObjectStore('evaluations', { keyPath: 'QA_id' });
+        }
+        if (!db.objectStoreNames.contains('settings')) {
+          db.createObjectStore('settings');
         }
       },
     });
@@ -81,4 +88,12 @@ export async function getTheme(): Promise<ThemeName> {
 
 export async function setTheme(theme: ThemeName): Promise<void> {
   await setSetting('theme', theme);
+}
+
+export async function getOnboardingCompleted(): Promise<boolean> {
+  return getSetting<boolean>('onboarding_completed', false);
+}
+
+export async function setOnboardingCompleted(value: boolean): Promise<void> {
+  await setSetting('onboarding_completed', value);
 }

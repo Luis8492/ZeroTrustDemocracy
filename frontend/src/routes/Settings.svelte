@@ -1,6 +1,13 @@
 <script lang="ts">
+  import { push } from 'svelte-spa-router';
   import { theme } from '../lib/stores';
+  import { setOnboardingCompleted } from '../lib/db';
   import type { ThemeName } from '../lib/types';
+
+  async function replayOnboarding() {
+    await setOnboardingCompleted(false);
+    push('/onboarding');
+  }
 
   interface ThemeOption {
     value: ThemeName;
@@ -66,6 +73,12 @@
       </li>
     {/each}
   </ul>
+</section>
+
+<section>
+  <h3>使い方ツアー</h3>
+  <p class="hint">初回訪問時のオンボーディングをもう一度表示します。</p>
+  <button type="button" onclick={replayOnboarding}>ツアーを再表示</button>
 </section>
 
 <style>

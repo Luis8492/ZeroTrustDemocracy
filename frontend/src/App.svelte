@@ -1,15 +1,18 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Router, { link } from 'svelte-spa-router';
+  import Router, { link, push } from 'svelte-spa-router';
   import { evaluatedCount, initStores } from './lib/stores';
+  import { getOnboardingCompleted, setOnboardingCompleted, countEvaluations } from './lib/db';
   import Home from './routes/Home.svelte';
   import Result from './routes/Result.svelte';
   import EvalHistory from './routes/EvalHistory.svelte';
   import Settings from './routes/Settings.svelte';
   import About from './routes/About.svelte';
+  import Onboarding from './routes/Onboarding.svelte';
 
   const routes = {
     '/': Home,
+    '/onboarding': Onboarding,
     '/result': Result,
     '/history': EvalHistory,
     '/settings': Settings,
@@ -19,8 +22,39 @@
   let ready = $state(false);
 
   onMount(async () => {
-    await initStores();
-    ready = true;
+    // IndexedDB が何らかの理由でハング/拒否しても画面が固まらないように、
+    // 安全弁として 4 秒で強制的に描画開始する。
+    const safety = window.setTimeout(() => {
+      if (!ready) {
+        console.error('App init timeout — rendering anyway');
+        ready = true;
+      }
+    }, 4000);
+
+    let shouldRedirectOnboarding = false;
+    try {
+      await initStores();
+      // 初回訪問者をオンボーディングへ誘導する。
+      const completed = await getOnboardingCompleted();
+      if (!completed) {
+        // オンボーディング機能導入前から使っている既存ユーザーは
+        // 評価済み件数で判定して、ツアーをスキップする。
+        const existing = await countEvaluations();
+        if (existing > 0) {
+          await setOnboardingCompleted(true);
+        } else {
+          const hash = window.location.hash;
+          const isRoot = hash === '' || hash === '#' || hash === '#/';
+          if (isRoot) shouldRedirectOnboarding = true;
+        }
+      }
+    } catch (e) {
+      console.error('App init failed:', e);
+    } finally {
+      window.clearTimeout(safety);
+      if (shouldRedirectOnboarding) push('/onboarding');
+      ready = true;
+    }
   });
 </script>
 
