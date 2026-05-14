@@ -1,12 +1,14 @@
 """Generate a mock evaluations CSV for testing the statistics view.
 
 Usage:
-    python scripts/generate_mock_evaluations.py [--db DB_PATH] [-o OUTPUT]
+    python scripts/generate_mock_evaluations.py [--db DB_PATH] [-o OUTPUT] [--ratio R]
 
-The script reads all question IDs from the SQLite database and assigns a
-random agreement score (-3 to +3) and importance score (0 to 3) to each
-one, then writes a CSV file that can be imported via the frontend's
-"CSV で読み込み" button on the statistics page.
+The script reads all question IDs from the SQLite database, randomly samples
+a portion (default 80%), and assigns each a random agreement score (-3 to +3)
+and importance score (0 to 3). The remaining QAs are left out so the
+frontend's evaluation screen still has unevaluated items to display.
+The output CSV can be imported via the "CSV で読み込み" button on the
+statistics page.
 """
 
 import argparse
@@ -35,7 +37,17 @@ def main():
         default=None,
         help="Random seed for reproducible output",
     )
+    parser.add_argument(
+        "--ratio",
+        type=float,
+        default=0.8,
+        help="Fraction of QAs to mark as evaluated (default: 0.8)",
+    )
     args = parser.parse_args()
+
+    if not 0 < args.ratio <= 1:
+        print("Error: --ratio must be in (0, 1]", file=sys.stderr)
+        sys.exit(1)
 
     db_path = Path(args.db)
     if not db_path.exists():
@@ -54,13 +66,19 @@ def main():
 
     rng = random.Random(args.seed)
 
+    sample_size = max(1, round(len(ids) * args.ratio))
+    sampled_ids = rng.sample(ids, sample_size)
+
     with open(args.output, "w", newline="", encoding="utf-8") as f:
         writer = csv.writer(f)
         writer.writerow(["QA_id", "eval", "importance"])
-        for qa_id in ids:
+        for qa_id in sampled_ids:
             writer.writerow([qa_id, rng.randint(-3, 3), rng.randint(0, 3)])
 
-    print(f"Wrote {len(ids)} mock evaluations to {args.output}")
+    print(
+        f"Wrote {sample_size} mock evaluations ({sample_size}/{len(ids)}, "
+        f"{sample_size / len(ids):.0%}) to {args.output}"
+    )
 
 
 if __name__ == "__main__":
