@@ -6,6 +6,7 @@ import sqlite3
 from typing import Iterable
 
 from app.municipal_modules.base import BaseMinuteFetcher
+from app.municipal_modules.base.BaseMinuteFetcher import _headless_default
 from app.municipal_modules.setagaya.regular.parsers.setagaya_regular_parser import (
     SetagayaRegularParser,
 )
@@ -117,7 +118,7 @@ class SetagayaRegularFetcher(BaseMinuteFetcher):
     def run(self) -> None:
         self._prepare_os_directories()
         conn = sqlite3.connect(self.config["db_path"])
-        browser = self.playwright.chromium.launch(headless=False)
+        browser = self.playwright.chromium.launch(headless=_headless_default())
         context = browser.new_context()
         page = context.new_page()
         page.goto(self.config["fetch_url"])

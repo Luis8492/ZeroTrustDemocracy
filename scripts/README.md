@@ -66,11 +66,14 @@ python scripts/remove_duplicates.py
 python scripts/remove_non_question_qas.py [municipality]   # 省略時 setagaya
 ```
 
-## Docker エントリポイント
+## 本番デプロイ用エクスポート
 
-### docker-compose-entrypoint.sh / start-backend.sh
+### export_static_data.py
 
-`docker-compose.yml` のバックエンドコンテナで使われる起動スクリプト。
-直接の手動実行は想定していません。`INIT_DB_ON_START` / `RUN_FETCH_ON_START` /
-`MUNICIPALITY` などの環境変数を見て初期化・取得・解析を行ったあと、
-uvicorn を起動します。
+SQLite から `frontend/public/data/` 配下に静的 JSON (index + 会議別) を出力します。
+匿名化と政党解決はここで適用されます。Cloudflare Pages へのデプロイは
+この出力ディレクトリを `npm run build` 経由で配信します。
+
+```bash
+python scripts/export_static_data.py [--municipality setagaya] [--out <dir>]
+```

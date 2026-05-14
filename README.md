@@ -85,7 +85,7 @@
 | グラフ描画 | Chart.js + chartjs-chart-error-bars (議員/会派別評価), SVG 直書き (論点マップ) |
 | ルーティング | svelte-spa-router (hash-based) |
 | 匿名化 | `anonymizer.py`（PIIリストによる置換） |
-| 配信 | 開発時は Vite (`npm run dev`), 本番は Nginx (`Dockerfile.frontend` 多段ビルド) |
+| 配信 | 開発時は Vite (`npm run dev`), 本番は Cloudflare Pages (静的) |
 
 ---
 
@@ -123,8 +123,7 @@ npm run dev
 ```
 
 フロントを本番モードで配信する場合は `npm run build` で `frontend/dist/` を
-生成し、静的配信サーバーから配信してください (Docker Compose ではこれを Nginx で
-配信します)。
+生成し、静的配信サーバー (Cloudflare Pages 等) から配信してください。
 
 ### データベース初期化
 
@@ -159,117 +158,74 @@ python app/minute_analyzer.py --municipality setagaya
 
 未解析の行（`analyzed=0`）を読み取り、パーサーで構造化された質疑応答ペア（QA）を生成して `questions` テーブルに書き込みます。`--municipality` を省略するとすべての自治体を処理します。
 
-#### Docker 経由での実行
-
-Docker Compose を使う場合は、環境変数でコンテナ起動時に自動的に取得・解析を行えます。
+#### 3. 静的 JSON へのエクスポート
 
 ```bash
-INIT_DB_ON_START=true RUN_FETCH_ON_START=true MUNICIPALITY=setagaya docker compose up --build
+python scripts/export_static_data.py
 ```
+
+DB を匿名化済みの静的 JSON にダンプし、`frontend/public/data/` 配下へ出力します。
+フロントエンドはここを直接読みに行きます。
 
 ---
 
-## 🐳 Docker での実行
+## 🚀 本番デプロイ (Cloudflare Pages + GitHub Actions)
 
-ローカル環境に Python や Playwright を直接インストールせずに動作を確認したい場合は、リポジトリに含めた Docker 設定を利用できます。
+本リポジトリは **完全静的サイト** としてデプロイできるように構成されている。
+評価データはクライアント側 IndexedDB に閉じているため、サーバーは不要。
 
-### 必要なファイル
+### 構成図
 
-- `Dockerfile`: FastAPI バックエンド用のイメージを定義する。Playwright の公式 Python イメージをベースにし、依存関係をインストールしたうえで非 root ユーザー（`appuser`）でプロセスを実行する。
-- `Dockerfile.frontend`: フロントエンドの静的ファイルを Nginx で配信するためのイメージです。
-- `docker-compose.yml`: バックエンドとフロントエンドの 2 コンテナをまとめて起動する。アプリケーションのログ、SQLite データベース、取得した議事録、生成物はホスト側ディレクトリへマウントされ、永続化される。
-- `scripts/start-backend.sh`: バックエンドコンテナのエントリポイントです。環境変数で初期化やスクレイピング処理の有無を切り替えられます。
+```
+[GitHub Actions cron 週次]
+   ├─ fetch.py + minute_analyzer.py で db/setagaya.db を更新
+   ├─ export_static_data.py で frontend/public/data/*.json を再生成
+   └─ 変更を main に commit & push
+        │
+        ▼
+[Cloudflare Pages]
+   └─ push を検知して npm run build → CDN 配信
+```
 
+### データのエクスポート (ローカル確認用)
 
-### 永続化されるディレクトリ
+```bash
+python scripts/export_static_data.py
+# => frontend/public/data/index.json + meetings/*.json を生成
+```
 
-`docker-compose.yml` では、以下のディレクトリをバックエンドコンテナへバインドマウントしている。
+### Cloudflare Pages の初期設定 (一度きり)
 
-| ホスト側 | コンテナ側 | 用途 |
+1. Cloudflare ダッシュボード → Workers & Pages → Create application → Pages → Connect to Git
+2. リポジトリを選択し、Production branch = `main`
+3. Build settings:
+   - **Framework preset**: `None` (Vite を手動指定)
+   - **Build command**: `cd frontend && npm install && npm run build`
+   - **Build output directory**: `frontend/dist`
+   - **Root directory**: 空欄 (リポジトリルート)
+4. 環境変数は不要 (デフォルトで `/data` 配下を見にいく)
+5. Save and Deploy
+
+カスタムドメインを設定する場合は Pages の "Custom domains" タブから追加。
+
+### GitHub Actions の有効化
+
+`.github/workflows/update-data.yml` がリポジトリに含まれている。
+GitHub リポジトリの Settings → Actions → General で:
+
+- **Workflow permissions** を **Read and write permissions** に
+- (任意) 即座に動作確認したい場合は Actions タブから `Update assembly data` ワークフローを手動実行 (`workflow_dispatch`)
+
+実行スケジュールは毎週月曜 03:00 JST。Actions が DB と JSON を commit して push すると Cloudflare Pages が自動でビルドし、CDN へ反映される。
+
+### 議事録ファイルの取り扱い
+
+| パス | git 追跡 | 備考 |
 |---|---|---|
-| `./logs` | `/app/logs` | バックエンドログ |
-| `./db` | `/app/db` | SQLite データベース |
-| `./app/raw_minutes` | `/app/app/raw_minutes` | 取得した生議事録ファイル |
-| `./app/exports` | `/app/app/exports` | 加工結果などの生成物 |
-| `./config` | `/app/config` | 外部設定ファイル（`config.yaml`, `<municipality>.yaml` など） |
+| `db/setagaya.db` | ✅ | Actions が更新 / 約 14MB から徐々に増加 |
+| `frontend/public/data/` | ✅ | エクスポート結果。CF Pages のビルドに必要 |
+| `app/raw_minutes/*.txt` | ❌ (.gitignore) | フェッチで再生成可能。サイズ抑制のため除外 |
 
-`app/exports/` は生成物の保存先として追加している。必要に応じて、解析結果の JSON や CSV などをこのディレクトリに出力するとよい。
+### API サーバー版を使いたい場合
 
-`./config` を `/app/config` にマウントすることで、コンテナ外で管理する設定を優先的に読み込める。`CONFIG_DIR` または `CONFIG_PATH` を指定すると、デフォルトの同梱設定より外部設定を優先する実装である。
-
-### 別コンテナから参照する方法
-
-同一 `docker compose` プロジェクト内であれば、同じホスト側パスを別サービスにもマウントすることで参照できる。
-
-```yaml
-services:
-  worker:
-    image: python:3.12-slim
-    volumes:
-      - ./app/raw_minutes:/work/raw_minutes:ro
-      - ./app/exports:/work/exports
-```
-
-- `:ro` を付与すると読み取り専用マウントになるため、安全に参照だけを行える。
-- 書き込みが必要な場合は `:ro` を外し、共有ディレクトリとして利用する。
-
-### ヘルスチェックと起動順制御
-
-`docker-compose.yml` では `backend` / `frontend` の両サービスに `healthcheck` を設定している。
-
-- `backend`: `http://localhost:8000/openapi.json` へコンテナ内部からアクセスし、API が応答可能かを確認する。
-- `frontend`: `http://localhost/` への HTTP アクセスで Nginx の応答可否を確認する。
-- `frontend` は `depends_on` の `condition: service_healthy` を使い、`backend` のヘルスチェック成功後に起動する。
-
-状態確認は以下で行える。
-
-```bash
-docker compose ps
-```
-
-### 起動手順
-
-```bash
-# 変更を反映したイメージをビルドしつつ起動
-docker compose up --build
-
-# バックグラウンドで起動したい場合
-docker compose up --build -d
-```
-
-- FastAPI バックエンド: http://localhost:8000
-- フロントエンド: http://localhost:8001
-
-ブラウザでフロントエンドにアクセスすると、ホストの `localhost:8000` に公開された API を利用します。
-
-### オプション
-
-以下の環境変数は `docker-compose.yml` で設定済みですが、必要に応じて上書きできます。
-
-| 変数名 | 役割 | 既定値 |
-|--------|------|--------|
-| `MUNICIPALITY` | 処理対象の議会を指定します。本リポジトリでは `setagaya` のみ。 | `setagaya` |
-| `INIT_DB_ON_START` | コンテナ起動時に `scripts/init_db.py` を実行するかどうか。 | `false` |
-| `RUN_FETCH_ON_START` | コンテナ起動時に `app/fetch.py` と `app/minute_analyzer.py` を実行するか。 | `false` |
-| `UVICORN_HOST` / `UVICORN_PORT` | Uvicorn サーバーのホスト・ポート。 | `0.0.0.0` / `8000` |
-| `CONFIG_DIR` | 自治体設定や `config.yaml` を置く外部設定ディレクトリ。 | `/app/config` |
-| `CONFIG_PATH` | グローバル設定ファイルの絶対パス（`CONFIG_DIR` より優先）。 | 未設定 |
-
-
-外部設定を利用する場合の例は以下のとおりである。
-
-```bash
-# docker-compose.yml で ./config:/app/config をマウント済みの場合
-# /app/config/config.yaml, /app/config/setagaya.yaml などが優先される
-docker compose up --build
-
-# グローバル設定だけ別パスを使う場合
-CONFIG_PATH=/app/config/production.yaml docker compose up --build
-```
-
-自治体向けの SQLite データベースを事前に用意したい場合は、起動後に以下のように実行してください。
-
-```bash
-# setagaya の DB を初期化 (委員会・定例会共用)
-docker compose run --rm backend python scripts/init_db.py setagaya
-```
+`app/feederAPI.py` は引き続き動作する。VPS 等で API + フロントエンドを動かす運用も可能だが、その場合は `frontend/src/lib/api.ts` を `fetch('/api/...')` 版に書き戻す必要がある (現在はリポジトリ上は静的版のみ)。

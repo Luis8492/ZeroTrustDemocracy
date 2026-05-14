@@ -1,6 +1,7 @@
 """Base classes for downloading municipal meeting minutes."""
 
 import json
+import os
 import sqlite3
 import uuid
 from abc import ABC, abstractmethod
@@ -13,6 +14,14 @@ from utils.logger import get_logger
 
 
 logger = get_logger(__name__)
+
+
+def _headless_default() -> bool:
+    """Headless when CI=true (GitHub Actions) or FETCHER_HEADLESS is set."""
+    flag = os.getenv("FETCHER_HEADLESS")
+    if flag is not None:
+        return flag.lower() in ("1", "true", "yes")
+    return os.getenv("CI", "").lower() == "true"
 
 
 class BaseMinuteFetcher(ABC):
@@ -30,7 +39,7 @@ class BaseMinuteFetcher(ABC):
         self._prepare_os_directories()
         conn = sqlite3.connect(self.config["db_path"])
         ensure_schema(conn)
-        browser = self.playwright.chromium.launch(headless=False)
+        browser = self.playwright.chromium.launch(headless=_headless_default())
         context = browser.new_context()
         page = context.new_page()
         page.goto(self.config["fetch_url"])

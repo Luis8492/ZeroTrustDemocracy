@@ -1,1 +1,4 @@
 *.db
+# The Setagaya DB is updated by the weekly Actions workflow and consumed by
+# the static export. Keep it tracked so Cloudflare Pages rebuilds have data.
+!setagaya.db
