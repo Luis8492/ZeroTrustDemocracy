@@ -51,7 +51,7 @@
   - 会議情報（日時、委員会名）
   - トピック単位の発言群
   - 質問者・答弁者の発言を分離しQA化
-  - 個人情報を匿名化（`anonymizer.py`）
+  - 政党名を伏字化（`anonymizer.py` で `***` に置換）
 
 - SQLite3にメタデータ（会議情報、質問者、topic_introなど）を保存
 
@@ -105,7 +105,7 @@
 | クライアントDB | [idb](https://github.com/jakearchibald/idb) (IndexedDB ラッパー) |
 | グラフ描画 | Chart.js + chartjs-chart-error-bars (議員/会派別評価), SVG 直書き (論点マップ) |
 | ルーティング | svelte-spa-router (hash-based) |
-| 匿名化 | `anonymizer.py`（PIIリストによる置換） |
+| 匿名化 | `anonymizer.py`（政党名リストの伏字化） |
 | 配信 | 開発時は Vite (`npm run dev`), 本番は Cloudflare Pages (静的) |
 
 ---
