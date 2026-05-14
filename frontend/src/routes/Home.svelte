@@ -34,7 +34,6 @@
         allDone = false;
         evalValue = 0;
         importanceValue = 0;
-        window.scrollTo({ top: 0, behavior: 'smooth' });
       } else {
         qa = null;
         allDone = true;
@@ -52,6 +51,9 @@
     const party = qa.questioner_party || '';
     await saveEvaluation({ QA_id: qa.id, eval: value, importance });
     await refreshEvaluatedCount();
+    // Bring the user's eyes back to the top, THEN celebrate, so the burst
+    // is in their field of view rather than firing while they're scrolled down.
+    window.scrollTo({ top: 0, behavior: 'smooth' });
     showToast(speaker, party);
     celebrate();
     await loadNext();
