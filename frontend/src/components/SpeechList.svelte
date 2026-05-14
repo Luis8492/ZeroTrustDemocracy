@@ -198,47 +198,79 @@
 
   /* ---------- Scroll (和紙) theme overrides ---------- */
   :global([data-theme='scroll']) .speeches {
-    gap: 1.25rem;
-    padding: 1rem 0;
+    gap: 1.5rem;
+    padding: 1.25rem 0.5rem;
     line-height: 2;
-    border-top: 2px solid var(--border);
-    border-bottom: 2px solid var(--border);
+    border-top: 3px double var(--border);
+    border-bottom: 3px double var(--border);
+    position: relative;
   }
   :global([data-theme='scroll']) .speech .avatar { display: none; }
   :global([data-theme='scroll']) .bubble {
     background: transparent;
     border: none;
-    padding: 0 0.5rem;
+    padding: 0 0.75rem;
   }
   :global([data-theme='scroll']) .meta {
-    font-size: 0.75rem;
-    margin: 0 0 0.5rem;
-    opacity: 0.7;
+    font-size: 0.78rem;
+    margin: 0 0 0.4rem;
+    opacity: 0.85;
+    letter-spacing: 0.08em;
+    border-bottom: 1px dotted var(--border);
+    padding-bottom: 0.2rem;
+  }
+  :global([data-theme='scroll']) .meta .name {
+    font-weight: 700;
+  }
+  :global([data-theme='scroll']) .comment {
+    letter-spacing: 0.02em;
+    text-indent: 1em;
   }
   :global([data-theme='scroll']) .speech.questioner .bubble {
-    border-left: 3px double var(--questioner-text);
-    padding-left: 0.6rem;
+    border-right: 4px double var(--accent);
+    padding-right: 0.75rem;
+    padding-left: 0.75rem;
     color: var(--questioner-text);
+    background:
+      linear-gradient(90deg, transparent 0, transparent calc(100% - 2.5rem),
+        rgba(184, 51, 42, 0.04) 100%);
+  }
+  :global([data-theme='scroll']) .speech.questioner .meta .mark {
+    color: var(--accent);
+    font-weight: 700;
   }
   :global([data-theme='scroll']) .speech.answerer .bubble {
-    border-left: 3px solid var(--answerer-text);
-    padding-left: 0.6rem;
+    border-left: 4px solid var(--answerer-text);
+    padding-left: 0.75rem;
     color: var(--answerer-text);
   }
   :global([data-theme='scroll']) .speech.chair .bubble {
     color: var(--chair-text);
     font-style: italic;
+    text-align: center;
+  }
+  :global([data-theme='scroll']) .speech.chair .bubble::before,
+  :global([data-theme='scroll']) .speech.chair .bubble::after {
+    content: '─';
+    color: var(--border);
+    margin: 0 0.5rem;
   }
 
-  /* ---------- HUD / SF theme overrides ---------- */
+  /* ---------- HUD / Cyber theme overrides ---------- */
+  :global([data-theme='hud']) .speeches {
+    gap: 1rem;
+  }
   :global([data-theme='hud']) .bubble {
     background: var(--surface);
     border: 1px solid var(--border);
-    backdrop-filter: blur(8px);
-    -webkit-backdrop-filter: blur(8px);
-    box-shadow:
-      0 0 0 1px rgba(34, 211, 238, 0.08),
-      0 8px 24px rgba(0, 0, 0, 0.35);
+    backdrop-filter: blur(10px) saturate(140%);
+    -webkit-backdrop-filter: blur(10px) saturate(140%);
+    box-shadow: var(--shadow-card);
+    position: relative;
+    clip-path: polygon(
+      8px 0, 100% 0, 100% calc(100% - 8px),
+      calc(100% - 8px) 100%, 0 100%, 0 8px
+    );
   }
   :global([data-theme='hud']) .speech {
     grid-template-columns: auto minmax(0, 1fr);
@@ -250,37 +282,63 @@
     place-items: center;
     width: 44px;
     height: 44px;
-    border-radius: 6px;
-    background: rgba(34, 211, 238, 0.12);
+    border-radius: 2px;
+    background: rgba(0, 240, 255, 0.10);
     color: var(--accent);
-    border: 1px solid var(--border);
+    border: 1px solid var(--accent);
     font-family: var(--font-mono);
     font-size: 0.95rem;
     letter-spacing: 0.05em;
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.3),
+      inset 0 0 10px rgba(0, 240, 255, 0.15);
   }
   :global([data-theme='hud']) .meta {
     font-family: var(--font-mono);
     font-size: 0.7rem;
     text-transform: uppercase;
-    letter-spacing: 0.08em;
+    letter-spacing: 0.12em;
     color: var(--text-muted);
     border-bottom: 1px dashed var(--border);
     padding-bottom: 0.25rem;
+  }
+  :global([data-theme='hud']) .meta .name {
+    color: var(--accent);
+    text-shadow: 0 0 6px rgba(0, 240, 255, 0.45);
   }
   :global([data-theme='hud']) .speech.questioner .bubble {
     background: var(--questioner-bg);
     color: var(--questioner-text);
     border-left: 3px solid var(--accent);
+    box-shadow: -8px 0 18px rgba(0, 240, 255, 0.18),
+      var(--shadow-card);
+  }
+  :global([data-theme='hud']) .speech.questioner .avatar {
+    border-color: var(--accent);
+    color: var(--accent);
   }
   :global([data-theme='hud']) .speech.answerer .bubble {
     background: var(--answerer-bg);
     color: var(--answerer-text);
-    border-left: 3px solid #a855f7;
+    border-left: 3px solid var(--accent-2);
+    box-shadow: -8px 0 18px rgba(255, 43, 214, 0.18),
+      var(--shadow-card);
+  }
+  :global([data-theme='hud']) .speech.answerer .avatar {
+    border-color: var(--accent-2);
+    color: var(--accent-2);
+    background: rgba(255, 43, 214, 0.10);
+    box-shadow: 0 0 12px rgba(255, 43, 214, 0.3),
+      inset 0 0 10px rgba(255, 43, 214, 0.15);
+  }
+  :global([data-theme='hud']) .speech.answerer .meta .name {
+    color: var(--accent-2);
+    text-shadow: 0 0 6px rgba(255, 43, 214, 0.45);
   }
   :global([data-theme='hud']) .speech.chair .bubble {
     color: var(--text-muted);
     font-family: var(--font-mono);
     font-size: 0.85rem;
+    border-left: 1px dashed var(--border);
   }
   :global([data-theme='hud']) .comment {
     line-height: 1.7;

@@ -138,6 +138,17 @@
     border-color: var(--accent);
     font-weight: 600;
   }
+  :global([data-theme='hud']) .tag.committee {
+    box-shadow: 0 0 12px rgba(0, 240, 255, 0.45);
+    text-transform: uppercase;
+    letter-spacing: 0.1em;
+    font-family: var(--font-mono);
+    font-size: 0.75rem;
+  }
+  :global([data-theme='scroll']) .tag {
+    border-radius: 2px;
+    border-width: 1px;
+  }
   .intro summary {
     cursor: pointer;
     color: var(--text-muted);

@@ -170,6 +170,24 @@
     background: var(--surface);
     border-radius: var(--radius);
     padding: 1rem;
+    box-shadow: var(--shadow-card);
+    transition: transform 120ms ease, box-shadow 120ms ease;
+  }
+  .qa-card:hover {
+    box-shadow: var(--shadow-card-hover);
+  }
+  :global([data-theme='scroll']) .qa-card {
+    border-radius: 2px;
+    border-left: 4px double var(--accent);
+  }
+  :global([data-theme='hud']) .qa-card {
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    border-left: 3px solid var(--accent);
+  }
+  :global([data-theme='hud']) .qa-card .eval {
+    font-family: var(--font-mono);
+    text-shadow: 0 0 8px rgba(0, 240, 255, 0.4);
   }
   .qa-card header {
     display: flex;
