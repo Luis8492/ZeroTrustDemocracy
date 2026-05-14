@@ -2,8 +2,6 @@ import argparse
 import sys
 from pathlib import Path
 
-from playwright.sync_api import sync_playwright
-
 # Ensure repository root is importable when running as a script
 sys.path.append(str(Path(__file__).resolve().parent.parent))
 
@@ -37,10 +35,20 @@ def main() -> None:
     else:
         selected = fetchers
 
-    with sync_playwright() as playwright:
+    needs_playwright = any(
+        getattr(cls, "REQUIRES_PLAYWRIGHT", True) for cls in selected.values()
+    )
+
+    if needs_playwright:
+        from playwright.sync_api import sync_playwright
+
+        with sync_playwright() as playwright:
+            for fetcher_cls in selected.values():
+                pw = playwright if getattr(fetcher_cls, "REQUIRES_PLAYWRIGHT", True) else None
+                fetcher_cls(pw, args.municipality).run()
+    else:
         for fetcher_cls in selected.values():
-            fetcher = fetcher_cls(playwright, args.municipality)
-            fetcher.run()
+            fetcher_cls(None, args.municipality).run()
 
 
 if __name__ == "__main__":

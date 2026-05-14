@@ -24,6 +24,22 @@ def _headless_default() -> bool:
     return os.getenv("CI", "").lower() == "true"
 
 
+def _resolve_raw_minutes_dir(config: dict) -> Path:
+    """Resolve where raw minute files live.
+
+    Priority: config ``raw_minutes_dir`` > ``RAW_MINUTES_DIR`` env > bundled
+    ``app/raw_minutes/``. Config values are already resolved to absolute paths
+    by ``config_loader.load``.
+    """
+    configured = config.get("raw_minutes_dir")
+    if configured:
+        return Path(configured)
+    env_value = os.getenv("RAW_MINUTES_DIR")
+    if env_value:
+        return Path(env_value).expanduser()
+    return Path(__file__).resolve().parents[2] / "raw_minutes"
+
+
 class BaseMinuteFetcher(ABC):
     """Common workflow for downloading raw meeting minutes."""
 
@@ -33,7 +49,7 @@ class BaseMinuteFetcher(ABC):
         self.playwright = playwright
         self.municipality = municipality
         self.config = load_for_fetcher(municipality, self.FETCHER_NAME)
-        self.raw_minutes_dir = Path(__file__).resolve().parents[2] / "raw_minutes"
+        self.raw_minutes_dir = _resolve_raw_minutes_dir(self.config)
 
     def run(self) -> None:
         self._prepare_os_directories()

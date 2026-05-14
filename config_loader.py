@@ -9,10 +9,18 @@ municipal_dir = base_dir / 'app' / 'municipal_modules'
 def available_municipalities() -> set[str]:
     """Discover municipality modules at runtime.
 
-    A municipality is "available" when its bundled YAML config exists at
-    ``app/municipal_modules/<name>/config/<name>.yaml`` OR when a YAML by the
-    same name exists under ``CONFIG_DIR``. This avoids hard-coded allowlists,
-    so adding/removing a municipality module is the only edit required.
+    A municipality is "available" when its YAML config exists at one of:
+
+    - ``app/municipal_modules/<name>/config/<name>.yaml`` (bundled)
+    - ``<CONFIG_DIR>/<name>.yaml`` or ``<CONFIG_DIR>/<name>/config/<name>.yaml``
+    - ``<CONFIG_DIR>/municipal_modules/<name>/config/<name>.yaml``
+      (conventional private-repo layout where ``CONFIG_DIR`` is the project
+      root containing ``municipal_modules/``)
+    - ``<MUNICIPAL_MODULES_PATH entry>/<name>/config/<name>.yaml``
+      (when the plugin tree is decoupled from the config root)
+
+    This avoids hard-coded allowlists, so adding/removing a municipality module
+    is the only edit required.
     """
     names: set[str] = set()
     if municipal_dir.exists():
@@ -27,6 +35,16 @@ def available_municipalities() -> set[str]:
             for path in config_dir.glob('*.yaml'):
                 if path.stem != 'config':
                     names.add(path.stem)
+            for sub in config_dir.iterdir():
+                if sub.is_dir() and (sub / 'config' / f'{sub.name}.yaml').exists():
+                    names.add(sub.name)
+
+    for plugin_dir in _external_plugin_dirs():
+        if not plugin_dir.exists():
+            continue
+        for sub in plugin_dir.iterdir():
+            if sub.is_dir() and (sub / 'config' / f'{sub.name}.yaml').exists():
+                names.add(sub.name)
     return names
 
 
@@ -50,7 +68,7 @@ def load(municipality: str):
 
     root_dir = _resolve_path_root(config_path)
     # resolve paths relative to repo root
-    for key in ['db_path', 'pii_dir', 'party_table_path']:
+    for key in ['db_path', 'pii_dir', 'party_table_path', 'raw_minutes_dir']:
         if key in data:
             data[key] = str((root_dir / data[key]).resolve())
 
@@ -104,23 +122,62 @@ def _resolve_municipality_config_path(municipality: str) -> Path:
             config_dir / f'{municipality}.yaml',
             config_dir / municipality / f'{municipality}.yaml',
             config_dir / municipality / 'config' / f'{municipality}.yaml',
+            config_dir / 'municipal_modules' / municipality / 'config' / f'{municipality}.yaml',
         ]
         for candidate in candidates:
             if candidate.exists():
                 return candidate
 
+    for plugin_dir in _external_plugin_dirs():
+        candidate = plugin_dir / municipality / 'config' / f'{municipality}.yaml'
+        if candidate.exists():
+            return candidate
+
     return municipal_dir / municipality / 'config' / f'{municipality}.yaml'
 
 
+def _external_plugin_dirs() -> list[Path]:
+    """Return directories listed in ``MUNICIPAL_MODULES_PATH`` that exist."""
+    raw = os.getenv('MUNICIPAL_MODULES_PATH')
+    if not raw:
+        return []
+    dirs: list[Path] = []
+    for chunk in raw.split(os.pathsep):
+        chunk = chunk.strip()
+        if not chunk:
+            continue
+        path = Path(chunk).expanduser()
+        if path.exists():
+            dirs.append(path)
+    return dirs
+
+
 def _resolve_path_root(config_path: Path) -> Path:
+    """Root directory that relative paths inside the YAML resolve against.
+
+    - If ``CONFIG_DIR`` contains the YAML, paths resolve against ``CONFIG_DIR``.
+    - Else if a ``MUNICIPAL_MODULES_PATH`` entry contains the YAML, paths
+      resolve against the *parent* of that entry (the conventional project
+      root containing ``municipal_modules/``).
+    - Else paths resolve against the framework repo root (legacy bundled case).
+    """
+    config_path_resolved = config_path.resolve()
+
     config_dir_env = os.getenv('CONFIG_DIR')
     if config_dir_env:
         config_dir = Path(config_dir_env).expanduser().resolve()
-        config_path_resolved = config_path.resolve()
         try:
             config_path_resolved.relative_to(config_dir)
             return config_dir
         except ValueError:
             pass
+
+    for plugin_dir in _external_plugin_dirs():
+        plugin_dir_resolved = plugin_dir.resolve()
+        try:
+            config_path_resolved.relative_to(plugin_dir_resolved)
+            return plugin_dir_resolved.parent
+        except ValueError:
+            continue
 
     return base_dir

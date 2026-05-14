@@ -45,6 +45,12 @@ def analyze_unprocessed_minutes(
     conn = sqlite3.connect(config["db_path"])
     ensure_schema(conn)
 
+    raw_minutes_root = (
+        config.get("raw_minutes_dir")
+        or os.getenv("RAW_MINUTES_DIR")
+        or os.path.join(os.path.dirname(__file__), "raw_minutes")
+    )
+
     if parser is not None:
         pairs = [(fetcher_name or getattr(parser, "FETCHER_NAME"), parser)]
     else:
@@ -61,7 +67,7 @@ def analyze_unprocessed_minutes(
         logger.info(f"[INFO] {fname}: 未分析のファイル数 {len(rows)}")
         cutoff = cutoff_date()
         for minute_id, file_name in rows:
-            file_path = os.path.join(os.path.dirname(__file__), "raw_minutes", file_name)
+            file_path = os.path.join(raw_minutes_root, file_name)
             if not os.path.exists(file_path):
                 logger.warning(f"[WARN] ファイルが見つかりません: {file_path}")
                 continue
@@ -96,7 +102,7 @@ def analyze_minute(
 ) -> dict:
     minute_text = Path(file_path).read_text(encoding=encoding, errors="replace")
     minute_json = parser.convert(minute_text)
-    minute_json["file_name"] = file_path.split("/")[-1]
+    minute_json["file_name"] = os.path.basename(file_path)
     return minute_json
 
 

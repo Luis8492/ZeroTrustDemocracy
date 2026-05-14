@@ -1,0 +1,15 @@
+# Reference plugin: synthetic 'sample' assembly. Demonstrates every config key
+# a real municipality plugin would set. Paths are relative to the framework
+# repo root when bundled, or to CONFIG_DIR / MUNICIPAL_MODULES_PATH parent
+# when consumed externally.
+
+db_path: db/sample.db
+raw_minutes_dir: raw_minutes/sample
+pii_files:
+  - app/municipal_modules/sample/config/sample_pii.txt
+party_table_path: app/municipal_modules/sample/config/sample-party-table.csv
+
+fetchers:
+  SampleFetcher:
+    fetch_url: sample://local-fixtures
+    encoding: utf-8

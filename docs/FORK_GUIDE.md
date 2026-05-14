@@ -1,10 +1,131 @@
-# 他議会への対応 (フォーク手順)
+# 他議会への対応 (フォーク手順 / submodule 手順)
 
-本リポジトリは現状、世田谷区議会専用の配布物として整備されています。別議会
-(板橋区、横浜市、都道府県議会など) に対応させる場合は、このリポジトリを
-**フォークして編集する**運用を想定しています。プラグイン抽象 (`BaseMinuteFetcher`,
-`BaseMinuteParser`, `available_municipalities()`) は維持されているため、以下の
-手順で新議会向けの配布物を作れます。
+本リポジトリはフレームワーク本体です。実議会の議事録データを扱う運用リポジトリは、
+本リポジトリを **submodule として取り込む** のが推奨構成です (議事録テキスト
+や DB を public 履歴に混入させないため)。OSS 配布物として別議会版を提供したい
+場合は従来通り **フォークして編集する** こともできます。
+
+- **submodule 方式** → §A 〜 §C (運用リポジトリは private、本リポジトリは public OSS)
+- **フォーク方式** → §1 〜 §9 (運用リポジトリそのものを公開する場合)
+
+---
+
+## A. submodule 方式 (推奨)
+
+本フレームワークを取り込んだ private 運用リポジトリを別に用意し、議事録固有の
+データ・プラグイン・config を private 側に置きます。フレームワーク側は議会固有の
+情報を一切持たず、純粋な OSS として更新を受け続けられます。
+
+### A-1. 推奨ディレクトリ構成
+
+```
+ZeroTrustDemocracy-<assembly>/        (private)
+├── framework/                        ← git submodule → 本リポジトリ
+├── municipal_modules/                ← MUNICIPAL_MODULES_PATH の指す先
+│   └── <assembly>/
+│       ├── __init__.py               # PARSERS / FETCHERS を export
+│       ├── config/<assembly>.yaml
+│       └── regular/, committee/, ... (session sub-packages)
+├── db/<assembly>.db
+├── raw_minutes/<assembly>/
+├── frontend_data/                    ← export 出力先 (Cloudflare Pages の入力)
+├── Makefile (or run.ps1 / run.sh)
+└── .github/workflows/update-data.yml ← 週次 cron
+```
+
+### A-2. submodule の登録
+
+```bash
+git init ZeroTrustDemocracy-<assembly>
+cd ZeroTrustDemocracy-<assembly>
+git submodule add https://github.com/<you>/ZeroTrustDemocracy framework
+git submodule update --init --recursive
+```
+
+### A-3. 環境変数で framework を private 側にバインド
+
+| Env var | 説明 | 例 |
+| --- | --- | --- |
+| `MUNICIPAL_MODULES_PATH` | 外部プラグインを置いた**親ディレクトリ** (OS 区切り文字で複数指定可) | `<project>/municipal_modules` |
+| `CONFIG_DIR` | YAML config のルート (省略すると `MUNICIPAL_MODULES_PATH` の親が使われる) | `<project>` |
+| `RAW_MINUTES_DIR` | `raw_minutes/` の場所を YAML を介さず上書き | `<project>/raw_minutes/<assembly>` |
+| `EXPORT_OUTPUT_DIR` | exporter (`scripts/export_static_data.py`) の出力ルート | `<project>/frontend_data` |
+| `PYTHONPATH` | framework をモジュールとして import 可能にする | `<project>/framework` |
+
+`<assembly>.yaml` 内の相対パス (`db_path`, `raw_minutes_dir` など) は、
+`CONFIG_DIR` または `MUNICIPAL_MODULES_PATH` の親をプロジェクトルートとして解決
+されます。
+
+### A-4. グルースクリプト例 (Makefile)
+
+```makefile
+PROJECT := $(abspath .)
+export MUNICIPAL_MODULES_PATH := $(PROJECT)/municipal_modules
+export CONFIG_DIR             := $(PROJECT)
+export EXPORT_OUTPUT_DIR      := $(PROJECT)/frontend_data
+export PYTHONPATH             := $(PROJECT)/framework
+
+ASSEMBLY ?= <assembly>
+
+init:
+	python framework/scripts/init_db.py $(ASSEMBLY)
+fetch:
+	python framework/app/fetch.py --municipality $(ASSEMBLY)
+analyze:
+	python framework/app/minute_analyzer.py --municipality $(ASSEMBLY)
+export:
+	python framework/scripts/export_static_data.py --municipality $(ASSEMBLY)
+all: init fetch analyze export
+```
+
+### A-5. 動作確認
+
+```bash
+# framework 側で同梱されている sample プラグインを反対側 (= 外部経由) で
+# 走らせて疎通確認する例:
+MUNICIPAL_MODULES_PATH=framework/app/municipal_modules \
+PYTHONPATH=framework \
+python framework/scripts/init_db.py sample
+```
+
+`framework/app/municipal_modules/sample/` は架空のリファレンス実装です。Playwright
+を使わないローカルファイル fetcher で構成されているので、submodule 取り込み
+直後の疎通テストに使えます。
+
+### A-6. 週次 cron は private 側に置く
+
+`framework/.github/workflows/update-data.yml` は OSS リポジトリには **置きません** 。
+週次 cron は private 側の `.github/workflows/` に作り、submodule を pin した状態で
+fetch → analyze → export → commit を回します。
+
+---
+
+## B. submodule の更新フロー
+
+```bash
+# framework 側に新機能/修正が入ったら private 側で取り込み
+cd framework && git pull origin main && cd ..
+git add framework
+git commit -m "Bump framework submodule"
+```
+
+CI で submodule pin の差分をチェックして PR を立てるのが堅実です。
+
+---
+
+## C. 問い合わせ窓口
+
+利用者からの問い合わせは本フレームワークリポジトリ (public) の Issues / Discussions で
+受け付けます。実議会のサイトに関する個別のフィードバック窓口を分けたい場合は、
+Cloudflare Pages のフッターから別途 public な「フィードバック用リポジトリ」または
+外部フォームへ誘導する構成が便利です。
+
+---
+
+## フォーク方式 (運用リポジトリそのものを OSS として公開する場合)
+
+別議会版を OSS として丸ごと公開したい場合は、本リポジトリをそのままフォークして
+編集する従来の方式が使えます。以下はその手順です。
 
 ## 1. リポジトリをフォーク
 

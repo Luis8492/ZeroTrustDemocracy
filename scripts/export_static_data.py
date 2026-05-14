@@ -17,6 +17,7 @@ import argparse
 import csv
 import datetime as _dt
 import json
+import os
 import re
 import sqlite3
 import sys
@@ -31,7 +32,21 @@ from anonymizer import Anonymizer  # noqa: E402
 from config_loader import load  # noqa: E402
 
 
-DEFAULT_OUT = REPO_ROOT / "frontend" / "public"
+def _default_out() -> Path:
+    """Default export root. Overridden by ``EXPORT_OUTPUT_DIR`` env var.
+
+    The default points at ``frontend/public`` inside the framework repo so
+    ``npm run dev`` picks the data up. External runners (e.g. a private
+    operations repo) set ``EXPORT_OUTPUT_DIR`` to point at their own
+    ``frontend_data/`` or ``dist/`` directory.
+    """
+    env_value = os.getenv("EXPORT_OUTPUT_DIR")
+    if env_value:
+        return Path(env_value).expanduser()
+    return REPO_ROOT / "frontend" / "public"
+
+
+DEFAULT_OUT = _default_out()
 
 
 def _normalize_name(name: str) -> str:
