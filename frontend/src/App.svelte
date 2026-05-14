@@ -33,7 +33,10 @@
     <a href="/settings" use:link>設定</a>
     <a href="/about" use:link>このサイトについて</a>
   </nav>
-  <span class="counter" title="累積評価数">評価済 {$evaluatedCount}</span>
+  <span class="counter" title="累積評価数">
+    <span class="counter-label">評価済み</span>
+    <span class="counter-num">{$evaluatedCount}</span>
+  </span>
 </header>
 
 <main class="page">
@@ -102,9 +105,17 @@
   }
   .counter {
     margin-left: auto;
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.4rem;
+    font-family: var(--font-display);
+    font-weight: 700;
+    letter-spacing: 0.02em;
+    color: var(--text);
     font-variant-numeric: tabular-nums;
-    color: var(--text-muted);
-    font-size: 0.9rem;
+  }
+  .counter-num {
+    color: var(--accent);
   }
   .page {
     max-width: var(--max-width);
@@ -203,8 +214,19 @@
     text-shadow: 0 0 8px rgba(0, 240, 255, 0.5);
   }
   :global([data-theme='hud']) .counter {
-    font-family: var(--font-mono);
+    font-family: var(--font-display);
+    color: var(--accent);
+    text-transform: uppercase;
+    letter-spacing: 0.18em;
+    font-size: 0.95rem;
+    text-shadow: 0 0 10px rgba(0, 240, 255, 0.6);
+  }
+  :global([data-theme='hud']) .counter-num {
     color: var(--accent-2);
-    text-shadow: 0 0 6px rgba(255, 43, 214, 0.4);
+    text-shadow: 0 0 10px rgba(255, 43, 214, 0.6);
+  }
+  :global([data-theme='scroll']) .counter {
+    font-family: var(--font-display);
+    letter-spacing: 0.12em;
   }
 </style>

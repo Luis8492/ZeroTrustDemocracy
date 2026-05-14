@@ -20,6 +20,7 @@
   import { computeGroupedStats, type GroupStat } from '../lib/stats';
   import type { QAMeta, EvaluationRecord } from '../lib/types';
   import TopicMap from '../components/TopicMap.svelte';
+  import Locked from '../components/Locked.svelte';
 
   Chart.register(
     BarController,
@@ -33,6 +34,12 @@
   );
 
   type MetaWithEval = QAMeta & { eval?: number; importance?: number };
+
+  // Progressive unlock thresholds (件数).
+  const TH_PARTY = 0;
+  const TH_COMMITTEE = 5;
+  const TH_QUESTIONER = 15;
+  const TH_TOPIC_MAP = 30;
 
   let count = $state(0);
   let busy = $state(true);
@@ -72,22 +79,6 @@
   }
 
   function renderCharts() {
-    const questionerStats = computeGroupedStats(
-      allData,
-      (m) => m.eval,
-      (m) => m.questioner,
-    );
-    renderChart(
-      questionerCanvas,
-      questionerChart,
-      questionerStats,
-      '議員別平均同意度',
-      { min: -3, max: 3 },
-      'rgba(37, 99, 235, 0.4)',
-      'rgba(37, 99, 235, 1)',
-      (c) => { questionerChart = c; },
-    );
-
     const partyStats = computeGroupedStats(
       allData.filter((m) => m.questioner_party),
       (m) => m.eval,
@@ -118,6 +109,22 @@
       'rgba(217, 119, 6, 0.4)',
       'rgba(217, 119, 6, 1)',
       (c) => { topicImportanceChart = c; },
+    );
+
+    const questionerStats = computeGroupedStats(
+      allData,
+      (m) => m.eval,
+      (m) => m.questioner,
+    );
+    renderChart(
+      questionerCanvas,
+      questionerChart,
+      questionerStats,
+      '議員別平均同意度',
+      { min: -3, max: 3 },
+      'rgba(37, 99, 235, 0.4)',
+      'rgba(37, 99, 235, 1)',
+      (c) => { questionerChart = c; },
     );
   }
 
@@ -208,20 +215,48 @@
   <p>集計中…</p>
 {:else if error}
   <p class="error">エラー: {error}</p>
-{:else if count === 0}
-  <p>まだ評価がありません。<a href="#/">評価ページ</a>から始めてください。</p>
 {:else}
-  <p>累積評価数: <strong>{count}</strong></p>
-
   <section class="charts">
-    <canvas bind:this={questionerCanvas} width="800" height="320"></canvas>
-    <canvas bind:this={partyCanvas} width="800" height="320"></canvas>
-    <canvas bind:this={topicImportanceCanvas} width="800" height="320"></canvas>
+    <Locked
+      title="会派別平均同意度"
+      threshold={TH_PARTY}
+      currentCount={count}
+      description="質問者の会派ごとの平均同意度。"
+    >
+      <canvas bind:this={partyCanvas} width="800" height="320"></canvas>
+    </Locked>
+
+    <Locked
+      title="委員会別平均重要度"
+      threshold={TH_COMMITTEE}
+      currentCount={count}
+      description="委員会ごとに、あなたが重要と感じた度合いの平均。"
+    >
+      <canvas bind:this={topicImportanceCanvas} width="800" height="320"></canvas>
+    </Locked>
+
+    <Locked
+      title="議員別平均同意度"
+      threshold={TH_QUESTIONER}
+      currentCount={count}
+      description="質問者（議員）ごとの平均同意度。"
+    >
+      <canvas bind:this={questionerCanvas} width="800" height="320"></canvas>
+    </Locked>
+
+    <Locked
+      title="論点マップ"
+      threshold={TH_TOPIC_MAP}
+      currentCount={count}
+      description="委員会ごとの評価分布を俯瞰するネットワーク図。"
+    >
+      <TopicMap items={allData} />
+    </Locked>
   </section>
 
-  <TopicMap items={allData} />
-
-  <p class="history-link"><a href="#/history">評価履歴で個別の発言を確認する →</a></p>
+  {#if count > 0}
+    <p class="history-link"><a href="#/history">評価履歴で個別の発言を確認する →</a></p>
+  {/if}
 {/if}
 
 <section class="io">
