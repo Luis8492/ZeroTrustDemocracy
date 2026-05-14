@@ -1,6 +1,6 @@
 <script lang="ts">
   import { onMount } from 'svelte';
-  import Router, { link, push } from 'svelte-spa-router';
+  import Router, { link, push, location } from 'svelte-spa-router';
   import { evaluatedCount, initStores } from './lib/stores';
   import { getOnboardingCompleted, setOnboardingCompleted, countEvaluations } from './lib/db';
   import Home from './routes/Home.svelte';
@@ -20,6 +20,20 @@
   };
 
   let ready = $state(false);
+  let menuOpen = $state(false);
+
+  // ルート変更時はメニューを閉じる（モバイルで遷移後にメニューが残らないように）。
+  $effect(() => {
+    $location;
+    menuOpen = false;
+  });
+
+  function toggleMenu() {
+    menuOpen = !menuOpen;
+  }
+  function closeMenu() {
+    menuOpen = false;
+  }
 
   onMount(async () => {
     // IndexedDB が何らかの理由でハング/拒否しても画面が固まらないように、
@@ -59,19 +73,40 @@
 </script>
 
 <header class="appbar">
-  <a href="/" use:link class="brand">世田谷区議会QAナビ</a>
-  <nav class="links">
-    <a href="/" use:link>評価</a>
-    <a href="/result" use:link>統計</a>
-    <a href="/history" use:link>評価履歴</a>
-    <a href="/settings" use:link>設定</a>
-    <a href="/about" use:link>このサイトについて</a>
+  <a href="/" use:link class="brand" onclick={closeMenu}>世田谷区議会QAナビ</a>
+  <nav class="links" class:open={menuOpen} id="primary-nav">
+    <a href="/" use:link onclick={closeMenu}>評価</a>
+    <a href="/result" use:link onclick={closeMenu}>統計</a>
+    <a href="/history" use:link onclick={closeMenu}>評価履歴</a>
+    <a href="/settings" use:link onclick={closeMenu}>設定</a>
+    <a href="/about" use:link onclick={closeMenu}>このサイトについて</a>
   </nav>
   <span class="counter" title="累積評価数">
     <span class="counter-label">評価済み</span>
     <span class="counter-num">{$evaluatedCount}</span>
   </span>
+  <button
+    type="button"
+    class="menu-toggle"
+    class:open={menuOpen}
+    aria-label="メニュー"
+    aria-expanded={menuOpen}
+    aria-controls="primary-nav"
+    onclick={toggleMenu}
+  >
+    <span class="bar"></span>
+    <span class="bar"></span>
+    <span class="bar"></span>
+  </button>
 </header>
+{#if menuOpen}
+  <button
+    type="button"
+    class="menu-scrim"
+    aria-label="メニューを閉じる"
+    onclick={closeMenu}
+  ></button>
+{/if}
 
 <main class="page">
   {#if ready}
@@ -150,6 +185,117 @@
   }
   .counter-num {
     color: var(--accent);
+  }
+
+  /* ハンバーガーボタン: モバイル時のみ表示する */
+  .menu-toggle {
+    display: none;
+    width: 40px;
+    height: 40px;
+    padding: 0;
+    margin-left: 0.25rem;
+    background: transparent;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    cursor: pointer;
+    position: relative;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    gap: 5px;
+    transition: background 120ms ease, border-color 120ms ease;
+  }
+  .menu-toggle:hover {
+    background: var(--accent-soft, transparent);
+    border-color: var(--accent);
+  }
+  .menu-toggle .bar {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--text);
+    border-radius: 2px;
+    transition: transform 180ms ease, opacity 180ms ease;
+  }
+  .menu-toggle.open .bar:nth-child(1) {
+    transform: translateY(7px) rotate(45deg);
+  }
+  .menu-toggle.open .bar:nth-child(2) {
+    opacity: 0;
+  }
+  .menu-toggle.open .bar:nth-child(3) {
+    transform: translateY(-7px) rotate(-45deg);
+  }
+
+  /* メニューの背後タップ領域 (モバイルのみ表示) */
+  .menu-scrim {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: transparent;
+    border: 0;
+    padding: 0;
+    z-index: 8;
+    cursor: default;
+  }
+
+  @media (max-width: 720px) {
+    .appbar {
+      gap: 0.5rem;
+      padding: 0.6rem 0.75rem;
+    }
+    .brand {
+      font-size: 0.95rem;
+    }
+    .counter {
+      margin-left: auto;
+      font-size: 0.85rem;
+    }
+    .counter-label {
+      display: none;
+    }
+    .counter-num::before {
+      content: '★ ';
+      color: var(--accent);
+    }
+    .menu-toggle {
+      display: flex;
+    }
+    .menu-scrim {
+      display: block;
+    }
+    .links {
+      position: absolute;
+      top: 100%;
+      right: 0.5rem;
+      left: auto;
+      margin-left: 0;
+      flex-direction: column;
+      align-items: stretch;
+      gap: 0.15rem;
+      min-width: 12rem;
+      padding: 0.5rem;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      box-shadow: 0 12px 32px rgba(0, 0, 0, 0.18);
+      transform-origin: top right;
+      transform: scale(0.96) translateY(-4px);
+      opacity: 0;
+      pointer-events: none;
+      transition: transform 140ms ease, opacity 140ms ease;
+      z-index: 9;
+    }
+    .links.open {
+      transform: scale(1) translateY(0);
+      opacity: 1;
+      pointer-events: auto;
+    }
+    .links :global(a) {
+      padding: 0.6rem 0.75rem;
+      border-radius: 6px;
+      font-size: 0.95rem;
+    }
   }
   .page {
     max-width: var(--max-width);
@@ -262,5 +408,38 @@
   :global([data-theme='scroll']) .counter {
     font-family: var(--font-display);
     letter-spacing: 0.12em;
+  }
+
+  /* ---------- メニューボタン: テーマ別 ---------- */
+  :global([data-theme='hud']) .menu-toggle {
+    border-color: var(--accent);
+    box-shadow: 0 0 8px rgba(0, 240, 255, 0.25);
+  }
+  :global([data-theme='hud']) .menu-toggle .bar {
+    background: var(--accent);
+    box-shadow: 0 0 6px rgba(0, 240, 255, 0.5);
+  }
+  :global([data-theme='hud']) .menu-toggle:hover {
+    background: rgba(0, 240, 255, 0.08);
+  }
+  :global([data-theme='scroll']) .menu-toggle {
+    border-color: var(--border);
+  }
+  :global([data-theme='scroll']) .menu-toggle .bar {
+    background: var(--text);
+  }
+
+  /* ---------- ドロップダウン: テーマ別 ---------- */
+  @media (max-width: 720px) {
+    :global([data-theme='hud']) .links {
+      background: rgba(7, 2, 15, 0.95);
+      border-color: var(--accent);
+      box-shadow: 0 0 24px rgba(0, 240, 255, 0.35);
+    }
+    :global([data-theme='scroll']) .links {
+      background: var(--surface);
+      border-color: var(--border);
+      box-shadow: 0 6px 18px rgba(120, 80, 30, 0.18);
+    }
   }
 </style>
