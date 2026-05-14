@@ -1,7 +1,8 @@
 <script lang="ts">
   import { onMount } from 'svelte';
   import { fetchMetaData } from '../lib/api';
-  import { listEvaluations } from '../lib/db';
+  import { clearEvaluations, listEvaluations } from '../lib/db';
+  import { refreshEvaluatedCount } from '../lib/stores';
   import type { QAMeta, EvaluationRecord } from '../lib/types';
 
   type MetaWithEval = QAMeta & { eval?: number; importance?: number };
@@ -49,6 +50,17 @@
     return [...new Set(values.filter((v): v is string => Boolean(v)))].sort();
   }
 
+  async function handleClear() {
+    if (count === 0) return;
+    const ok = window.confirm(
+      `評価履歴 ${count} 件をすべて削除します。この操作は取り消せません。よろしいですか？`,
+    );
+    if (!ok) return;
+    await clearEvaluations();
+    await refreshEvaluatedCount();
+    await load();
+  }
+
   onMount(load);
 </script>
 
@@ -61,7 +73,12 @@
 {:else if count === 0}
   <p>まだ評価がありません。<a href="#/">評価ページ</a>から始めてください。</p>
 {:else}
-  <p>評価済みの発言 <strong>{count}</strong> 件</p>
+  <div class="summary">
+    <p>評価済みの発言 <strong>{count}</strong> 件</p>
+    <button type="button" class="danger" onclick={handleClear}>
+      評価履歴を削除
+    </button>
+  </div>
 
   <section class="filters">
     <label>
@@ -112,6 +129,28 @@
 {/if}
 
 <style>
+  .summary {
+    display: flex;
+    gap: 1rem;
+    align-items: center;
+    flex-wrap: wrap;
+    justify-content: space-between;
+    margin: 1rem 0 0.5rem;
+  }
+  .summary p { margin: 0; }
+  .danger {
+    background: transparent;
+    color: #b00020;
+    border: 1px solid #b00020;
+    border-radius: var(--radius);
+    padding: 0.4rem 0.9rem;
+    font-size: 0.85rem;
+    cursor: pointer;
+  }
+  .danger:hover {
+    background: #b00020;
+    color: #fff;
+  }
   .filters {
     display: flex;
     gap: 1rem;

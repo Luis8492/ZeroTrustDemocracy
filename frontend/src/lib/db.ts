@@ -59,6 +59,11 @@ export async function countEvaluations(): Promise<number> {
   return db.count('evaluations');
 }
 
+export async function clearEvaluations(): Promise<void> {
+  const db = await getDB();
+  await db.clear('evaluations');
+}
+
 export async function getSetting<T>(key: string, fallback: T): Promise<T> {
   const db = await getDB();
   const value = await db.get('settings', key);
