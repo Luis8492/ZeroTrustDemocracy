@@ -1,43 +1,76 @@
 # Scripts
 
-補助 Python スクリプト一覧です。`MUNICIPALITY` 引数を取るものは現状 `setagaya`
-のみ受け付けます (定例会用は `--fetcher SetagayaRegularFetcher` で個別指定)。
+補助スクリプト一覧です。`MUNICIPALITY` 引数を取るものは現状 `setagaya` のみ
+受け付けます。各スクリプトはリポジトリのルートから実行してください。
 
-## init_db.py
+## DB 初期化
 
-```bash
-python scripts/init_db.py [municipality]
-```
+### init_db.py
+
 `<municipality>.yaml:db_path` で指定された SQLite ファイルにスキーマを作成します。
 
-## add_fetcher_column.py / add_participants_column.py
+```bash
+python scripts/init_db.py [municipality]   # municipality は省略時 setagaya
+```
 
-旧スキーマからのマイグレーション補助。新規 DB では `utils/db.py:ensure_schema`
-が同等処理を実行するため、通常は不要です。
+## 評価データ生成 (フロントエンドの統計画面テスト用)
 
-## remove_non_question_qas.py / remove_duplicates.py
+### generate_mock_evaluations.py
 
-DB クリーンアップ用ユーティリティ。
+DB 内の全 QA に対しランダムな同意度 (-3〜+3) と重要度 (0〜3) を割り当てた
+CSV を生成します。出力ファイルは統計画面の「CSV で読み込み」から取り込めます。
 
-## quality_check_setagaya_regular.py
+```bash
+python scripts/generate_mock_evaluations.py [--db db/setagaya.db] [-o mock_evaluations.csv] [--seed 42]
+```
 
-`SetagayaRegularFetcher` が取得した HTML ファイルを `SetagayaRegularParser` に
-かけて、Pattern1/2/3/Unknown の分布と抽出トピック数を集計します。Phase 0a で
-利用したもの。
+## パーサ開発・デバッグ
+
+### display_setagaya_minute.py / display_setagaya_regular_minute.py
+
+指定した raw 議事録ファイルをパーサにかけて構造化 JSON を標準出力します。
+
+```bash
+python scripts/display_setagaya_minute.py SetagayaCommitteeFetcher_<...>.txt
+python scripts/display_setagaya_regular_minute.py SetagayaRegularFetcher_<...>.html
+```
+
+ファイル名は `app/raw_minutes/` 配下の相対パスで指定します。
+
+### quality_check_setagaya_regular.py
+
+`app/raw_minutes/` 内の `SetagayaRegularFetcher_*.html` 全件を
+`SetagayaRegularParser` にかけて Pattern1/2/3/Unknown の分布と抽出トピック数を
+集計します。定例会パーサ改修時の回帰チェックに使えます。
 
 ```bash
 PYTHONIOENCODING=utf-8 python scripts/quality_check_setagaya_regular.py
 ```
 
-## display_setagaya_minute.py / display_setagaya_regular_minute.py
+## DB クリーンアップ
 
-指定した raw 議事録ファイルをパースして JSON で出力する開発用ツール。
+### remove_duplicates.py
+
+`minutes` / `meetings` / `downloaded_minutes_url_helper` / `questions` の各
+テーブルから重複行を削除します。DB パスは `db/setagaya.db` 固定。
 
 ```bash
-python scripts/display_setagaya_minute.py SetagayaCommitteeFetcher_*.txt
-python scripts/display_setagaya_regular_minute.py SetagayaRegularFetcher_*.html
+python scripts/remove_duplicates.py
 ```
 
-## list_setagaya_regular_urls.py
+### remove_non_question_qas.py
 
-定例会ページから議事録 URL を一覧表示します (Playwright)。
+`questions` テーブルから「◆」マーク (質問者発言) を含まない行を削除します。
+
+```bash
+python scripts/remove_non_question_qas.py [municipality]   # 省略時 setagaya
+```
+
+## Docker エントリポイント
+
+### docker-compose-entrypoint.sh / start-backend.sh
+
+`docker-compose.yml` のバックエンドコンテナで使われる起動スクリプト。
+直接の手動実行は想定していません。`INIT_DB_ON_START` / `RUN_FETCH_ON_START` /
+`MUNICIPALITY` などの環境変数を見て初期化・取得・解析を行ったあと、
+uvicorn を起動します。
