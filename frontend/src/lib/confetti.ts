@@ -1,6 +1,8 @@
 // Lightweight canvas confetti burst.
-// Combines edge launchers + a center starburst for a celebratory feel.
-// No dependencies. Each call runs for ~2s.
+// Fires "party popper" fountains from the bottom-left and bottom-right
+// corners — particles shoot upward at varied angles and fall back along
+// the sides, keeping the screen center mostly clear.
+// No dependencies. Each call runs for ~1.8s.
 
 interface Particle {
   x: number;
@@ -59,66 +61,32 @@ function randColor(): string {
   return COLORS[Math.floor(Math.random() * COLORS.length)];
 }
 
-function spawnEdgeBurst(count: number) {
+function spawnCornerPoppers(perCorner: number) {
   const w = window.innerWidth;
   const h = window.innerHeight;
-  for (let i = 0; i < count; i++) {
-    const edge = Math.floor(Math.random() * 4);
-    let x = 0, y = 0, vx = 0, vy = 0;
-    const speed = 350 + Math.random() * 450;
-    if (edge === 0) {
-      x = Math.random() * w;
-      y = -10;
-      vx = (Math.random() - 0.5) * 250;
-      vy = speed * 0.5;
-    } else if (edge === 1) {
-      x = w + 10;
-      y = h * (0.15 + Math.random() * 0.7);
-      vx = -speed;
-      vy = -speed * (0.3 + Math.random() * 0.5);
-    } else if (edge === 2) {
-      x = Math.random() * w;
-      y = h + 10;
-      vx = (Math.random() - 0.5) * 350;
-      vy = -speed * (0.8 + Math.random() * 0.5);
-    } else {
-      x = -10;
-      y = h * (0.15 + Math.random() * 0.7);
-      vx = speed;
-      vy = -speed * (0.3 + Math.random() * 0.5);
+  const origins: Array<{ x: number; y: number; sign: 1 | -1 }> = [
+    { x: 20, y: h - 20, sign: 1 },       // 左下: 右斜め上方向
+    { x: w - 20, y: h - 20, sign: -1 },  // 右下: 左斜め上方向
+  ];
+  for (const o of origins) {
+    for (let i = 0; i < perCorner; i++) {
+      // 真上 〜 内向き約70° の扇形 (画面端まで含む)
+      const angle = -Math.PI / 2 + o.sign * Math.random() * (Math.PI * 0.42);
+      const speed = 520 + Math.random() * 600;
+      particles.push({
+        x: o.x,
+        y: o.y,
+        vx: Math.cos(angle) * speed,
+        vy: Math.sin(angle) * speed,
+        size: 6 + Math.random() * 7,
+        color: randColor(),
+        shape: Math.random() < 0.7 ? 'rect' : 'circle',
+        angle: Math.random() * Math.PI * 2,
+        spin: (Math.random() - 0.5) * 14,
+        life: 0,
+        maxLife: 1500 + Math.random() * 700,
+      });
     }
-    particles.push({
-      x, y, vx, vy,
-      size: 10 + Math.random() * 10,
-      color: randColor(),
-      shape: Math.random() < 0.65 ? 'rect' : 'circle',
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 14,
-      life: 0,
-      maxLife: 1800 + Math.random() * 700,
-    });
-  }
-}
-
-function spawnCenterBurst(count: number) {
-  const cx = window.innerWidth / 2;
-  const cy = window.innerHeight * 0.45;
-  for (let i = 0; i < count; i++) {
-    const a = Math.random() * Math.PI * 2;
-    const speed = 200 + Math.random() * 400;
-    particles.push({
-      x: cx,
-      y: cy,
-      vx: Math.cos(a) * speed,
-      vy: Math.sin(a) * speed - 100,
-      size: 8 + Math.random() * 8,
-      color: randColor(),
-      shape: Math.random() < 0.5 ? 'rect' : 'circle',
-      angle: Math.random() * Math.PI * 2,
-      spin: (Math.random() - 0.5) * 16,
-      life: 0,
-      maxLife: 1500 + Math.random() * 600,
-    });
   }
 }
 
@@ -170,10 +138,11 @@ function step(ts: number) {
 }
 
 export function celebrate(): void {
+  // 意図的に prefers-reduced-motion を無視している:
+  // この演出はユーザー操作起点のゲーミフィケーション要素であり、
+  // OS のアニメーション縮小設定があっても発火させる。
   if (!ensureCanvas()) return;
-  if (window.matchMedia?.('(prefers-reduced-motion: reduce)').matches) return;
-  spawnEdgeBurst(120);
-  spawnCenterBurst(60);
+  spawnCornerPoppers(60); // 左下60 + 右下60 = 120粒
   if (rafId === null) {
     lastTs = 0;
     rafId = requestAnimationFrame(step);
