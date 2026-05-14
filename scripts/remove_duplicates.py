@@ -1,17 +1,17 @@
+import argparse
 import sqlite3
 import sys
 from pathlib import Path
 from typing import Dict, List
 
 sys.path.append(str(Path(__file__).resolve().parent.parent))
+from config_loader import load
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
 
-DB_PATH = Path(__file__).resolve().parent.parent / "db" / "setagaya.db"
 
-
-def remove_duplicates(db_path: Path = DB_PATH) -> None:
+def remove_duplicates(db_path: Path) -> None:
     if not db_path.exists():
         logger.error(f"Database not found: {db_path}")
         return
@@ -47,4 +47,8 @@ WHERE rowid NOT IN (
 
 
 if __name__ == "__main__":
-    remove_duplicates()
+    parser = argparse.ArgumentParser(description="Remove duplicate rows from an assembly's SQLite DB")
+    parser.add_argument("--municipality", default="sample")
+    args = parser.parse_args()
+    db_path = Path(load(args.municipality)["db_path"])
+    remove_duplicates(db_path)

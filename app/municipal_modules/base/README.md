@@ -1,7 +1,7 @@
 # base
 
 BaseMinuteFetcher と BaseMinuteParser のインターフェースを定義するディレクトリです。
-世田谷区の実装 `app/municipal_modules/setagaya` を参考に、各メソッドが受け取る入力と出力の形式を以下に示します。
+バンドルされたリファレンス実装 `app/municipal_modules/sample` を参考に、各メソッドが受け取る入力と出力の形式を以下に示します。
 
 ## フェッチャー (BaseMinuteFetcher)
 
@@ -93,7 +93,7 @@ QAs_topic = [
 ```
 ## 参考実装
 
-`app/municipal_modules/setagaya/committee` (委員会、テキスト形式) と
-`app/municipal_modules/setagaya/regular` (定例会、HTML 形式) に、上記メソッドを
-実装した具体例があります。新しい議会・session を追加する際はこれらを参考に
-してください。
+`app/municipal_modules/sample/regular` (架空議会、ローカル fixture fetcher + 簡易
+parser) に、上記メソッドを実装した最小の具体例があります。新しい議会・session
+を追加する際の出発点として利用してください。実議会の本格的な実装例は、
+公開されている private 運用リポジトリのいずれかを参考にしてください。

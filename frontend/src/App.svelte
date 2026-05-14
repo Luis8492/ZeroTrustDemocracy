@@ -3,6 +3,8 @@
   import Router, { link, push, location } from 'svelte-spa-router';
   import { evaluatedCount, initStores } from './lib/stores';
   import { getOnboardingCompleted, setOnboardingCompleted, countEvaluations } from './lib/db';
+  import { ASSEMBLY_NAME, PROJECT_REPO_URL } from './lib/config';
+  import { fetchDataSources, type DataSource } from './lib/api';
   import Home from './routes/Home.svelte';
   import Result from './routes/Result.svelte';
   import EvalHistory from './routes/EvalHistory.svelte';
@@ -21,6 +23,7 @@
 
   let ready = $state(false);
   let menuOpen = $state(false);
+  let dataSources = $state<DataSource[]>([]);
 
   // ルート変更時はメニューを閉じる（モバイルで遷移後にメニューが残らないように）。
   $effect(() => {
@@ -47,6 +50,10 @@
 
     let shouldRedirectOnboarding = false;
     try {
+      // index.json から data_sources を非ブロッキングで取得 (失敗しても画面表示はする)
+      fetchDataSources()
+        .then((s) => { dataSources = s; })
+        .catch((e) => console.warn('fetchDataSources failed:', e));
       await initStores();
       // 初回訪問者をオンボーディングへ誘導する。
       const completed = await getOnboardingCompleted();
@@ -73,7 +80,7 @@
 </script>
 
 <header class="appbar">
-  <a href="/" use:link class="brand" onclick={closeMenu}>世田谷区議会QAナビ</a>
+  <a href="/" use:link class="brand" onclick={closeMenu}>{ASSEMBLY_NAME}QAナビ</a>
   <nav class="links" class:open={menuOpen} id="primary-nav">
     <a href="/" use:link onclick={closeMenu}>評価</a>
     <a href="/result" use:link onclick={closeMenu}>統計</a>
@@ -117,20 +124,25 @@
 </main>
 
 <footer class="sitefoot">
-  <p class="source">
-    データ出典: <a href="https://www.city.setagaya.lg.jp/gikai/index.html" target="_blank" rel="noopener noreferrer">世田谷区議会 会議録</a>
-    ／
-    <a href="https://kugi.city.setagaya.tokyo.jp/voices/" target="_blank" rel="noopener noreferrer">世田谷区議会 会議録検索システム</a>
-  </p>
+  {#if dataSources.length}
+    <p class="source">
+      データ出典:
+      {#each dataSources as ds, i}
+        <a href={ds.url} target="_blank" rel="noopener noreferrer">{ds.name}</a>{#if i < dataSources.length - 1}
+          ／
+        {/if}
+      {/each}
+    </p>
+  {/if}
   <p class="disclaimer">
-    本サービスは有志によるもので、世田谷区および世田谷区議会の公式見解・公式サービスではありません。
+    本サービスは有志によるもので、{ASSEMBLY_NAME}の公式見解・公式サービスではありません。
     会議録の構造化処理上、原文と異なる表示や誤りを含む可能性があります。
     正確な内容は出典元をご確認ください。
     詳しくは <a href="#/about">このサイトについて</a> をご覧ください。
   </p>
   <p class="contact">
     削除依頼・誤り報告・お問い合わせは
-    <a href="https://github.com/Luis8492/ZeroTrustDemocracy/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>
+    <a href={PROJECT_REPO_URL} target="_blank" rel="noopener noreferrer">GitHub Issues</a>
     までお願いします。
   </p>
 </footer>

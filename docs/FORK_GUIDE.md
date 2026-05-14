@@ -154,9 +154,10 @@ app/municipal_modules/<新議会>/
     ├── ...
 ```
 
-世田谷区の `setagaya/committee/` (委員会、テキスト形式) と `setagaya/regular/`
-(定例会、HTML 形式) が参考実装です。1 session しかない議会なら session サブ
-パッケージを 1 つだけ作ればよく、複数 session ある議会なら同じ階層に並べます。
+バンドルされている `sample/regular/` (架空議会、ローカルファイル fetcher) が
+最小限の参考実装です。1 session しかない議会なら session サブパッケージを 1 つ
+だけ作ればよく、複数 session ある議会なら同じ階層に並べます (`committee/` と
+`regular/` のような対話形式と一括質問形式の二段構えなど)。
 
 ## 3. `__init__.py` で PARSERS / FETCHERS を宣言
 
@@ -182,8 +183,8 @@ FETCHERS = {
 
 ## 4. PII リスト / 会派表を差し替え
 
-- `app/PIIs/` 配下に新議会向けの議員名・会派名リストを置き、`<新議会>.yaml` の
-  `pii_files` で参照する。世田谷区専用の `partyNames.txt` は削除して構いません。
+- `<新議会>/PIIs/` 配下に議員名・会派名リストを置き、`<新議会>.yaml` の
+  `pii_files` で参照する (`sample/` の構成が最小例)。
 - `name-party-table.csv` (`<新議会>/config/`) は議員名 → 会派の対応表。空でもよい。
 
 ## 5. データベースを初期化
@@ -218,19 +219,24 @@ curl 'http://localhost:8000/api/qa?municipality=<新議会>&uuid=...'
 
 ## 8. フロントエンドのデフォルト議会名を差し替え
 
-`frontend/main.js` と `frontend/result.html` の `MUNICIPALITY` 定数を新議会名に変更
-します。ブランディング (タイトル、説明文) も同時に書き換えると配布物として
-完結します。
+`frontend/.env` (またはデプロイ環境変数) で以下を上書きします:
 
-## 9. (任意) 世田谷区モジュールを削除
+- `VITE_MUNICIPALITY` — `municipal_modules/<新議会>/config/<新議会>.yaml` と同じキー
+- `VITE_ASSEMBLY_NAME` — フッターやページタイトルに出る人間向け表示名
+- `VITE_SITE_TAGLINE` — 概要文 (OG 含む)
+- (任意) `VITE_PROJECT_REPO_URL` — フィードバック窓口
 
-フォーク先で世田谷区関連を残す必要がなければ、以下を一括削除して配布物を
-スリムにできます:
+データ出典リンク (フッター / About) は `<新議会>.yaml` の `data_sources:` から
+`index.json` 経由でフロントへ渡されるので、コードを触らずに YAML だけ書き換え
+ればよい構成です。
 
-- `app/municipal_modules/setagaya/`
-- `app/raw_minutes/Setagaya*`
-- `tests/test_setagaya_participants.py`, `tests/test_pattern_classifier.py`
-- `scripts/{display,list,quality_check}_setagaya_*` などの補助スクリプト
+## 9. (任意) 同梱の sample プラグインを削除
+
+実議会だけを残してフォーク先を軽くしたい場合、以下を削除できます:
+
+- `app/municipal_modules/sample/`
+- `tests/test_sample_parser.py`, `tests/test_external_plugin_discovery.py`
+  (sample に依存している部分)
 
 ---
 
@@ -238,9 +244,10 @@ curl 'http://localhost:8000/api/qa?municipality=<新議会>&uuid=...'
 
 実装してから挫折しがちなのは、議会によって質疑応答の構造が大きく異なる点です。
 
-- **委員会形式** (Q→A→Q→A の対話): 比較的そのまま QA 化可能。`setagaya` の
-  状態機械パーサーが参考になります。
+- **委員会形式** (Q→A→Q→A の対話): 比較的そのまま QA 化可能。発言者マーク
+  (`◆` 質問者 / `◎` 答弁者 / `○` 議長) を状態機械で追う方式が定石です。
 - **本会議形式** (一括質問→一括答弁): 1 議員あたり「議題ごとの Q/A ペア」を
-  HTML 構造から抽出する `setagaya2` 方式が現実的です。
+  HTML 構造から抽出する方式が現実的です (質問ブロックと答弁ブロックを別パスで
+  集め、トピックキーでマージする)。
 - **都道府県議会クラス**: 過去に都議会で「議員ごとの単発 QA」化に挫折した実績
   あり。フォーマット調査を Phase 0 として独立に走らせることを推奨します。

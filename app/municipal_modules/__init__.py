@@ -1,7 +1,7 @@
 """Municipality-specific components for fetching and parsing meeting minutes.
 
 This module discovers parser/fetcher implementations at runtime. A municipality
-package (e.g. ``setagaya``) may expose a ``PARSERS`` dict mapping
+package (e.g. ``sample``) may expose a ``PARSERS`` dict mapping
 ``fetcher_name`` to parser class — this is the preferred form when a single
 municipality has multiple session types. Older modules with a single parser
 under ``parsers/`` are still supported via fallback discovery.

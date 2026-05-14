@@ -23,8 +23,8 @@ def main():
     parser = argparse.ArgumentParser(description="Generate mock evaluation CSV")
     parser.add_argument(
         "--db",
-        default="db/setagaya.db",
-        help="Path to the SQLite database (default: db/setagaya.db)",
+        default="db/sample.db",
+        help="Path to the SQLite database (default: db/sample.db)",
     )
     parser.add_argument(
         "-o", "--output",

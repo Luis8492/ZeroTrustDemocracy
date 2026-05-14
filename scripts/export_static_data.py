@@ -199,6 +199,9 @@ def export(municipality: str, out_root: Path) -> Dict[str, int]:
         "meeting_count": len(meetings),
         "qas": index_entries,
     }
+    data_sources = config.get("data_sources")
+    if data_sources:
+        index_payload["data_sources"] = data_sources
     (out_dir / "index.json").write_text(
         json.dumps(index_payload, ensure_ascii=False, separators=(",", ":")),
         encoding="utf-8",
@@ -209,7 +212,7 @@ def export(municipality: str, out_root: Path) -> Dict[str, int]:
 
 def main() -> None:
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--municipality", default="setagaya")
+    parser.add_argument("--municipality", default="sample")
     parser.add_argument(
         "--out",
         type=Path,

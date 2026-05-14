@@ -66,7 +66,7 @@ class EvaledRequest(BaseModel):
     evaled_ids: List[int]  # POSTデータ受け用
 
 @app.post("/api/qa/next")
-def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
+def get_next_qa(data: EvaledRequest, municipality: str = Query("sample")):
     try:
         municipality = validate_municipality(municipality)
         config = load(municipality)
@@ -84,7 +84,7 @@ def get_next_qa(data: EvaledRequest, municipality: str = Query("setagaya")):
     return format_QA(qa, config)
 
 @app.get("/api/qa")
-def get_qa_by_uuid(uuid: str = Query(...), municipality: str = Query("setagaya")):
+def get_qa_by_uuid(uuid: str = Query(...), municipality: str = Query("sample")):
     try:
         municipality = validate_municipality(municipality)
         config = load(municipality)
@@ -96,7 +96,7 @@ def get_qa_by_uuid(uuid: str = Query(...), municipality: str = Query("setagaya")
     return format_QA(qa, config)
 
 @app.post("/api/qa/meta")
-def get_qa_meta(data: EvaledRequest, municipality: str = Query("setagaya")):
+def get_qa_meta(data: EvaledRequest, municipality: str = Query("sample")):
     if not data.evaled_ids:
         return []
     try:

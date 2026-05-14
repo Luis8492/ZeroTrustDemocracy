@@ -17,11 +17,17 @@ interface IndexEntry {
   committee_name: string;
 }
 
+export interface DataSource {
+  name: string;
+  url: string;
+}
+
 interface IndexFile {
   municipality: string;
   generated_at: string;
   qa_count: number;
   meeting_count: number;
+  data_sources?: DataSource[];
   qas: IndexEntry[];
 }
 
@@ -146,4 +152,9 @@ export async function fetchMetaData(evaledIds: number[]): Promise<QAMeta[]> {
 
 export function isQA(value: NextQAResponse): value is QA {
   return (value as QA).QA !== undefined;
+}
+
+export async function fetchDataSources(): Promise<DataSource[]> {
+  const idx = await getIndex();
+  return idx.data_sources ?? [];
 }

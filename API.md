@@ -79,7 +79,7 @@ UUIDでQAを取得します。
 - メソッド: `GET`
 - クエリ:
   - `uuid`: 取得対象のQA UUID
-  - `municipality`: 自治体名（省略時は `setagaya`）
+  - `municipality`: 自治体名（省略時は `sample`）
 
 ### レスポンス
 - 該当するQAが存在する場合:

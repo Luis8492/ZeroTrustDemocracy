@@ -23,9 +23,8 @@ def test_load_parsers_skips_failing_modules():
 
         # Flat mapping is keyed by fetcher_name now that one municipality can
         # host multiple sessions.
-        assert "SetagayaCommitteeFetcher" in flat
-        assert "SetagayaRegularFetcher" in flat
-        assert "setagaya" in grouped
+        assert "SampleFetcher" in flat
+        assert "sample" in grouped
         assert "broken" not in grouped
     finally:
         shutil.rmtree(broken)

@@ -9,6 +9,12 @@ pii_files:
   - app/municipal_modules/sample/config/sample_pii.txt
 party_table_path: app/municipal_modules/sample/config/sample-party-table.csv
 
+# Embedded into the exported index.json and rendered by the frontend.
+# Forks override this in their own config YAML.
+data_sources:
+  - name: ZeroTrustDemocracy フレームワーク (サンプル)
+    url: https://github.com/Luis8492/ZeroTrustDemocracy
+
 fetchers:
   SampleFetcher:
     fetch_url: sample://local-fixtures

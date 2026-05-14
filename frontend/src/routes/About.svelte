@@ -1,11 +1,24 @@
 <script lang="ts">
+  import { onMount } from 'svelte';
+  import { ASSEMBLY_NAME, PROJECT_REPO_URL } from '../lib/config';
+  import { fetchDataSources, type DataSource } from '../lib/api';
+
+  let dataSources = $state<DataSource[]>([]);
+
+  onMount(async () => {
+    try {
+      dataSources = await fetchDataSources();
+    } catch (e) {
+      console.warn('fetchDataSources failed:', e);
+    }
+  });
 </script>
 
 <h2>このサイトについて</h2>
 
 <section class="lead">
   <p>
-    <strong>世田谷区議会QAナビ</strong> は、世田谷区議会の会議録を「質問者と答弁者の
+    <strong>{ASSEMBLY_NAME}QAナビ</strong> は、{ASSEMBLY_NAME}の会議録を「質問者と答弁者の
     やり取り（QA）」単位に整理し、市民が一つひとつに対して
     <em>共感／重要度</em> を付けて振り返ることができる非公式の試作サービスです。
   </p>
@@ -51,8 +64,8 @@
   <h3>⚠️ 使う前に知っておいてほしいこと</h3>
   <ul>
     <li>
-      本サイトは <strong>有志による非公式</strong> のものであり、世田谷区および
-      世田谷区議会の公式サービス・公式見解ではありません。
+      本サイトは <strong>有志による非公式</strong> のものであり、{ASSEMBLY_NAME}の
+      公式サービス・公式見解ではありません。
     </li>
     <li>
       会議録を機械的に「QA」へ切り分けて表示しています。区切り方や発言者の
@@ -79,19 +92,15 @@
   </ul>
 </section>
 
+{#if dataSources.length}
 <section>
   <h3>📚 データ出典</h3>
   <ul>
-    <li>
-      <a href="https://www.city.setagaya.lg.jp/gikai/index.html" target="_blank" rel="noopener noreferrer">
-        世田谷区議会（区公式ホームページ）
-      </a>
-    </li>
-    <li>
-      <a href="https://kugi.city.setagaya.tokyo.jp/voices/" target="_blank" rel="noopener noreferrer">
-        世田谷区議会 会議録検索システム
-      </a>
-    </li>
+    {#each dataSources as ds}
+      <li>
+        <a href={ds.url} target="_blank" rel="noopener noreferrer">{ds.name}</a>
+      </li>
+    {/each}
   </ul>
   <p class="hint">
     会議録は議会から公開されている公的記録です。本サイトはそれを構造化して
@@ -99,12 +108,13 @@
     伏字化は行っています）。
   </p>
 </section>
+{/if}
 
 <section>
   <h3>🛠️ お問い合わせ・削除依頼</h3>
   <p>
     誤った表示の指摘、削除の依頼、機能要望などは
-    <a href="https://github.com/Luis8492/ZeroTrustDemocracy/issues" target="_blank" rel="noopener noreferrer">
+    <a href={PROJECT_REPO_URL} target="_blank" rel="noopener noreferrer">
       GitHub Issues
     </a>
     にお寄せください。

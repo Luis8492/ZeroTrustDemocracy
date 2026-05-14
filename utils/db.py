@@ -12,7 +12,7 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
         uuid TEXT UNIQUE,
         url TEXT UNIQUE,
         file_name TEXT,
-        fetcher TEXT NOT NULL DEFAULT "SetagayaCommitteeFetcher",
+        fetcher TEXT NOT NULL,
         analyzed INTEGER NOT NULL DEFAULT 0
     )
     """,

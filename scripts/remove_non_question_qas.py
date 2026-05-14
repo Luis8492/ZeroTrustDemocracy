@@ -24,7 +24,7 @@ def has_questioner_mark(qa_text: str) -> bool:
     )
 
 
-def remove_non_question_qas(municipality: str = "setagaya") -> None:
+def remove_non_question_qas(municipality: str = "sample") -> None:
     config = load(municipality)
     db_path = Path(config["db_path"])
     if not db_path.exists():
@@ -47,5 +47,5 @@ def remove_non_question_qas(municipality: str = "setagaya") -> None:
 
 
 if __name__ == "__main__":
-    target = sys.argv[1] if len(sys.argv) > 1 else "setagaya"
+    target = sys.argv[1] if len(sys.argv) > 1 else "sample"
     remove_non_question_qas(target)
