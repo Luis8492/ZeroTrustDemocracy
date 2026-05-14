@@ -12,6 +12,8 @@ export interface QA {
   committee_name: string;
   topic_intro: Speech[];
   QA: Speech[];
+  questioner: string;
+  questioner_party: string;
   eval_target: string;
 }
 

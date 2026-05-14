@@ -169,7 +169,7 @@ def get_eval_counts(evaled_ids: List[int], config: Dict[str, Any]) -> Dict[str, 
 def get_QA_by_id(qa_id: int, config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
-    cur.execute("SELECT id,uuid,file_name,topic_intro,QA FROM questions WHERE id=?", (qa_id,))
+    cur.execute("SELECT id,uuid,file_name,topic_intro,QA,questioner FROM questions WHERE id=?", (qa_id,))
     row = cur.fetchone()
     conn.close()
     return {
@@ -177,13 +177,14 @@ def get_QA_by_id(qa_id: int, config: Dict[str, Any]) -> Dict[str, Any]:
         "uuid": row[1],
         "file_name":row[2],
         "topic_intro": row[3],
-        "QA": row[4]
+        "QA": row[4],
+        "questioner": row[5],
     }
 
 def get_QA_by_uuid(qa_uuid: str, config: Dict[str, Any]) -> Dict[str, Any] | None:
     conn = sqlite3.connect(config["db_path"])
     cur = conn.cursor()
-    cur.execute("SELECT id,uuid,file_name,topic_intro,QA FROM questions WHERE uuid=?", (qa_uuid,))
+    cur.execute("SELECT id,uuid,file_name,topic_intro,QA,questioner FROM questions WHERE uuid=?", (qa_uuid,))
     row = cur.fetchone()
     conn.close()
     if row is None:
@@ -194,7 +195,30 @@ def get_QA_by_uuid(qa_uuid: str, config: Dict[str, Any]) -> Dict[str, Any] | Non
         "file_name": row[2],
         "topic_intro": row[3],
         "QA": row[4],
+        "questioner": row[5],
     }
+
+def resolve_party(questioner: str, file_name: str, config: Dict[str, Any]) -> str:
+    party_table_path = config.get("party_table_path")
+    if party_table_path:
+        party = load_party_table(party_table_path).get(questioner, "")
+        if party:
+            return party
+    conn = sqlite3.connect(config["db_path"])
+    cur = conn.cursor()
+    cur.execute(
+        """
+        SELECT helper.metadata
+        FROM minutes mi
+        LEFT JOIN downloaded_minutes_url_helper helper ON mi.url = helper.url
+        WHERE mi.file_name = ?
+        """,
+        (file_name,),
+    )
+    row = cur.fetchone()
+    conn.close()
+    metadata = row[0] if row else None
+    return party_from_metadata(metadata, questioner)
 
 def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
     conn = sqlite3.connect(config["db_path"])
@@ -202,6 +226,8 @@ def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
     cur.execute("SELECT id,date,name FROM meetings WHERE file_name=?", (entry.get("file_name"),))
     row = cur.fetchone()
     conn.close()
+    questioner = entry.get("questioner") or ""
+    party = resolve_party(questioner, entry.get("file_name"), config) if questioner else ""
     return {
         "id": entry.get("id"),
         "uuid": entry.get("uuid"),
@@ -209,6 +235,8 @@ def format_QA(entry: Dict[str, Any], config: Dict[str, Any]) -> Dict[str, Any]:
         "committee_name": row[2],
         "topic_intro": anonymize_QA(json.loads(entry.get("topic_intro")), config),
         "QA": anonymize_QA(json.loads(entry.get("QA")), config),
+        "questioner": questioner,
+        "questioner_party": party,
         "eval_target": "◆"
     }
 

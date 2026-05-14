@@ -13,6 +13,14 @@
   let importanceValue = $state(0);
   let busy = $state(false);
   let error = $state<string | null>(null);
+  let toast = $state<{ speaker: string; party: string } | null>(null);
+  let toastTimer: ReturnType<typeof setTimeout> | null = null;
+
+  function showToast(speaker: string, party: string) {
+    if (toastTimer) clearTimeout(toastTimer);
+    toast = { speaker, party };
+    toastTimer = setTimeout(() => { toast = null; }, 3000);
+  }
 
   async function loadNext() {
     busy = true;
@@ -39,13 +47,23 @@
 
   async function submitEval(value: number, importance: number) {
     if (!qa) return;
+    const speaker = qa.questioner || '不明';
+    const party = qa.questioner_party || '';
     await saveEvaluation({ QA_id: qa.id, eval: value, importance });
     await refreshEvaluatedCount();
+    showToast(speaker, party);
     await loadNext();
   }
 
   onMount(loadNext);
 </script>
+
+{#if toast}
+  <div class="toast" role="status" aria-live="polite">
+    <strong>回答を記録しました！</strong>
+    <span>発言者：{toast.speaker}氏{toast.party ? `(${toast.party})` : ''}</span>
+  </div>
+{/if}
 
 {#if error}
   <p class="error">エラー: {error}</p>
@@ -139,4 +157,34 @@
     text-decoration: underline;
   }
   .error { color: #b00020; }
+
+  .toast {
+    position: fixed;
+    top: 1rem;
+    left: 50%;
+    transform: translateX(-50%);
+    z-index: 1000;
+    display: flex;
+    flex-direction: column;
+    gap: 0.2rem;
+    padding: 0.75rem 1.2rem;
+    border-radius: var(--radius);
+    background: var(--accent);
+    color: var(--accent-contrast);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.18);
+    font-size: 0.9rem;
+    text-align: center;
+    max-width: min(90vw, 28rem);
+    animation: toast-in 0.25s ease-out, toast-out 0.4s ease-in 2.6s forwards;
+  }
+  .toast strong {
+    font-size: 0.95rem;
+  }
+  @keyframes toast-in {
+    from { opacity: 0; transform: translate(-50%, -1rem); }
+    to   { opacity: 1; transform: translate(-50%, 0); }
+  }
+  @keyframes toast-out {
+    to { opacity: 0; transform: translate(-50%, -0.5rem); }
+  }
 </style>
