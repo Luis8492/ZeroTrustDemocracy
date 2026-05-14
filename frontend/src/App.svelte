@@ -6,12 +6,14 @@
   import Result from './routes/Result.svelte';
   import EvalHistory from './routes/EvalHistory.svelte';
   import Settings from './routes/Settings.svelte';
+  import About from './routes/About.svelte';
 
   const routes = {
     '/': Home,
     '/result': Result,
     '/history': EvalHistory,
     '/settings': Settings,
+    '/about': About,
   };
 
   let ready = $state(false);
@@ -29,6 +31,7 @@
     <a href="/result" use:link>統計</a>
     <a href="/history" use:link>評価履歴</a>
     <a href="/settings" use:link>設定</a>
+    <a href="/about" use:link>このサイトについて</a>
   </nav>
   <span class="counter" title="累積評価数">評価済 {$evaluatedCount}</span>
 </header>
@@ -40,6 +43,25 @@
     <p>初期化中…</p>
   {/if}
 </main>
+
+<footer class="sitefoot">
+  <p class="source">
+    データ出典: <a href="https://www.city.setagaya.lg.jp/gikai/index.html" target="_blank" rel="noopener noreferrer">世田谷区議会 会議録</a>
+    ／
+    <a href="https://kugi.city.setagaya.tokyo.jp/voices/" target="_blank" rel="noopener noreferrer">世田谷区議会 会議録検索システム</a>
+  </p>
+  <p class="disclaimer">
+    本サービスは有志によるもので、世田谷区および世田谷区議会の公式見解・公式サービスではありません。
+    会議録の構造化処理上、原文と異なる表示や誤りを含む可能性があります。
+    正確な内容は出典元をご確認ください。
+    詳しくは <a href="#/about">このサイトについて</a> をご覧ください。
+  </p>
+  <p class="contact">
+    削除依頼・誤り報告・お問い合わせは
+    <a href="https://github.com/Luis8492/ZeroTrustDemocracy/issues" target="_blank" rel="noopener noreferrer">GitHub Issues</a>
+    までお願いします。
+  </p>
+</footer>
 
 <style>
   .appbar {
@@ -90,6 +112,48 @@
     padding: 1.5rem 1rem 4rem;
     position: relative;
     z-index: 2;
+  }
+
+  .sitefoot {
+    max-width: var(--max-width);
+    margin: 0 auto;
+    padding: 1.25rem 1rem 2rem;
+    border-top: 1px solid var(--border);
+    color: var(--text-muted);
+    font-size: 0.8rem;
+    line-height: 1.6;
+    position: relative;
+    z-index: 2;
+  }
+  .sitefoot p {
+    margin: 0.25rem 0;
+  }
+  .sitefoot a {
+    color: var(--text-muted);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+  .sitefoot a:hover {
+    color: var(--accent);
+  }
+  .sitefoot .disclaimer {
+    opacity: 0.85;
+  }
+
+  /* HUD theme footer tweaks */
+  :global([data-theme='hud']) .sitefoot {
+    font-family: var(--font-mono);
+    border-top-color: var(--accent);
+    color: var(--text-muted);
+  }
+  :global([data-theme='hud']) .sitefoot a {
+    color: var(--accent);
+  }
+
+  /* Scroll theme footer tweaks */
+  :global([data-theme='scroll']) .sitefoot {
+    font-family: var(--font-display);
+    letter-spacing: 0.04em;
   }
 
   /* ---------- Scroll theme: 和紙 chrome ---------- */

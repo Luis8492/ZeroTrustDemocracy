@@ -8,6 +8,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
 
 concurrency:
   group: update-data
@@ -56,3 +57,51 @@ jobs:
             git commit -m "chore(data): weekly minutes update"
             git push
           fi
+
+      # 失敗時に Issue を自動起票して気付けるようにする。
+      # 既に同じラベルの open issue があればコメントを追記し、なければ新規作成。
+      - name: Open / update failure issue
+        if: failure()
+        uses: actions/github-script@v7
+        with:
+          script: |
+            const label = 'workflow-failure';
+            const runUrl = `${context.serverUrl}/${context.repo.owner}/${context.repo.repo}/actions/runs/${context.runId}`;
+            const title = `[update-data] weekly run failed (${new Date().toISOString().slice(0,10)})`;
+            const body = [
+              `週次の \`update-data\` ワークフローが失敗しました。`,
+              ``,
+              `- Run: ${runUrl}`,
+              `- Commit: \`${context.sha}\``,
+              `- Trigger: \`${context.eventName}\``,
+              ``,
+              `Actions タブからログを確認してください。`,
+            ].join('\n');
+
+            const existing = await github.rest.issues.listForRepo({
+              owner: context.repo.owner,
+              repo: context.repo.repo,
+              state: 'open',
+              labels: label,
+              per_page: 1,
+            });
+
+            if (existing.data.length > 0) {
+              const issue = existing.data[0];
+              await github.rest.issues.createComment({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                issue_number: issue.number,
+                body: `Another failure on ${new Date().toISOString()}\n\n${body}`,
+              });
+              core.info(`Appended comment to #${issue.number}`);
+            } else {
+              const created = await github.rest.issues.create({
+                owner: context.repo.owner,
+                repo: context.repo.repo,
+                title,
+                body,
+                labels: [label],
+              });
+              core.info(`Opened issue #${created.data.number}`);
+            }

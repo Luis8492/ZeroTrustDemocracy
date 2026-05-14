@@ -11,6 +11,7 @@ from app.municipal_modules.base import BaseMinuteFetcher
 from app.municipal_modules.setagaya.committee.parsers.setagaya_committee_parser import (
     SetagayaCommitteeParser,
 )
+from utils.date_filter import cutoff_date, parse_committee_url_date
 from utils.logger import get_logger
 
 
@@ -38,7 +39,9 @@ class SetagayaCommitteeFetcher(BaseMinuteFetcher):
         if not frame:
             raise RuntimeError("iframe が見つかりませんでした")
         links = frame.locator("a[onclick^='winopen']").all()
+        cutoff = cutoff_date()
         urls = []
+        skipped_old = 0
         for link in links:
             onclick_attr = link.get_attribute("onclick")
             match = re.search(r"winopen\('([^']+)'", onclick_attr)
@@ -46,7 +49,15 @@ class SetagayaCommitteeFetcher(BaseMinuteFetcher):
                 raw_url = match.group(1)
                 html_decoded_url = html.unescape(raw_url)
                 full_url = urllib.parse.urljoin(frame.url, html_decoded_url)
+                meeting_date = parse_committee_url_date(full_url)
+                if meeting_date is not None and meeting_date < cutoff:
+                    skipped_old += 1
+                    continue
                 urls.append(full_url)
+        if skipped_old:
+            logger.info(
+                f"[FILTER] cutoff={cutoff.isoformat()} skipped {skipped_old} URL(s) older than 4 years"
+            )
         return urls
 
     def download_new_minutes(self, conn, context, url):

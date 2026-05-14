@@ -14,6 +14,12 @@ sys.path.append(str(Path(__file__).resolve().parent.parent))
 from app.municipal_modules.base.base_minute_parser import BaseMinuteParser
 from app.municipal_modules import load_parsers_by_municipality
 from config_loader import load, load_for_fetcher
+from utils.date_filter import (
+    cutoff_date,
+    is_within_cutoff,
+    parse_label_year,
+    parse_meeting_date_string,
+)
 from utils.db import ensure_schema
 from utils.logger import get_logger
 
@@ -53,6 +59,7 @@ def analyze_unprocessed_minutes(
         cur = conn.cursor()
         rows = query_not_analyzed_data(cur, fname)
         logger.info(f"[INFO] {fname}: 未分析のファイル数 {len(rows)}")
+        cutoff = cutoff_date()
         for minute_id, file_name in rows:
             file_path = os.path.join(os.path.dirname(__file__), "raw_minutes", file_name)
             if not os.path.exists(file_path):
@@ -60,6 +67,13 @@ def analyze_unprocessed_minutes(
                 continue
             try:
                 minute_json = analyze_minute(file_path, parser_obj, encoding=encoding)
+                if _is_minute_too_old(minute_json, cutoff):
+                    logger.info(
+                        f"[SKIP] Older than {cutoff.isoformat()}: {file_name} "
+                        f"(date={minute_json.get('meeting', {}).get('date')!r})"
+                    )
+                    update_analyzed_status(conn, cur, minute_id)
+                    continue
                 save_minute_to_db(minute_json, conn)
                 update_analyzed_status(conn, cur, minute_id)
             except Exception as e:
@@ -84,6 +98,24 @@ def analyze_minute(
     minute_json = parser.convert(minute_text)
     minute_json["file_name"] = file_path.split("/")[-1]
     return minute_json
+
+
+def _is_minute_too_old(minute_json: dict, cutoff) -> bool:
+    """True if the meeting date in *minute_json* is strictly before *cutoff*.
+
+    Tries the Western-calendar `YYYY年M月D日` form first (committee parser),
+    falls back to era-only year (regular parser stores e.g. `令和6年2月20日…`).
+    Unknown / unparsable dates are kept (returns False) so that we never
+    silently drop a minute we cannot date.
+    """
+    raw_date = (minute_json.get("meeting") or {}).get("date") or ""
+    parsed = parse_meeting_date_string(raw_date)
+    if parsed is not None:
+        return not is_within_cutoff(parsed, cutoff)
+    year = parse_label_year(raw_date)
+    if year is not None:
+        return year < cutoff.year
+    return False
 
 
 def get_parser(municipality: str) -> BaseMinuteParser:

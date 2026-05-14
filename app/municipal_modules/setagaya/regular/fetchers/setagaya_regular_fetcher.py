@@ -10,6 +10,7 @@ from app.municipal_modules.base.BaseMinuteFetcher import _headless_default
 from app.municipal_modules.setagaya.regular.parsers.setagaya_regular_parser import (
     SetagayaRegularParser,
 )
+from utils.date_filter import cutoff_date, is_year_within_cutoff, parse_label_year
 from utils.logger import get_logger
 
 logger = get_logger(__name__)
@@ -43,10 +44,20 @@ class SetagayaRegularFetcher(BaseMinuteFetcher):
         session_links = page.locator("ul.idx_menu li a").all()
         session_map: dict[str, list[str]] = {}
         seen: set[str] = set()
+        cutoff = cutoff_date()
+        skipped_old = 0
 
         for link in session_links:
             href = link.get_attribute("href")
             if not href:
+                continue
+            label = (link.text_content() or "").strip()
+            label_year = parse_label_year(label)
+            if not is_year_within_cutoff(label_year, cutoff):
+                logger.info(
+                    f"[SKIP] Session older than cutoff ({label_year} < {cutoff.year}): {label}"
+                )
+                skipped_old += 1
                 continue
             session_url = urllib.parse.urljoin(page.url, href)
             if conn and self.is_parent_url_processed(conn, session_url):
@@ -75,6 +86,10 @@ class SetagayaRegularFetcher(BaseMinuteFetcher):
 
             session_map[session_url] = collected
 
+        if skipped_old:
+            logger.info(
+                f"[FILTER] cutoff={cutoff.isoformat()} skipped {skipped_old} session(s) older than 4 years"
+            )
         return session_map
 
     def _ensure_helper_table(self, conn: sqlite3.Connection) -> None:
