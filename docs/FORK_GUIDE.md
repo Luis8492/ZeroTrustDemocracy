@@ -142,8 +142,7 @@ app/municipal_modules/<新議会>/
 ├── __init__.py            # PARSERS / FETCHERS dict を export
 ├── config/
 │   ├── <新議会>.yaml      # db_path / pii_files / party_table_path / fetchers.<NAME>.{fetch_url,encoding}
-│   ├── name-party-table.csv
-│   └── party_names.csv
+│   └── name-party-table.csv  # 議員→現行会派 (export 時の fallback)
 ├── <session_a>/           # 例: committee
 │   ├── __init__.py        # fetcher + parser を export
 │   ├── fetchers/
