@@ -101,6 +101,12 @@ def analyze_minute(
     file_path: str, parser: BaseMinuteParser, *, encoding: str = "cp932"
 ) -> dict:
     minute_text = Path(file_path).read_text(encoding=encoding, errors="replace")
+    # Normalise line endings so parser output (and the QA UUIDs derived from
+    # topic/qa indices) is invariant to whether the raw file was saved with
+    # LF (older Playwright/fetcher revisions) or CRLF (newer ones). Without
+    # this, re-fetching can silently shift downstream UUIDs and orphan
+    # client-side evaluation records keyed by them.
+    minute_text = minute_text.replace("\r\n", "\n").replace("\r", "\n")
     minute_json = parser.convert(minute_text)
     minute_json["file_name"] = os.path.basename(file_path)
     return minute_json
