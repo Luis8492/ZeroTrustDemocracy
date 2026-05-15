@@ -174,9 +174,14 @@ def save_QAs(minute,conn):
             else:
                 # if there is no entry with speech["mark"]=="◆", skip the QA
                 questioner=""
+                questioner_party=""
                 for speech in QA:
                     if speech["mark"]=="◆":
                         questioner = speech["name"]
+                        # Parsers that surface the period-correct 会派 in the
+                        # questioner speech let downstream skip the CSV
+                        # lookup entirely.
+                        questioner_party = speech.get("party", "") or ""
                         break
                 if questioner == "":
                     # Skip QA sequences with no questioner mark (◆)
@@ -184,8 +189,8 @@ def save_QAs(minute,conn):
                 QA_text = json.dumps(QA,indent=4,ensure_ascii=False)
                 qa_uuid = _generate_qa_uuid(minute_uuid, topic_index, qa_index)
                 cur.execute(
-                    "INSERT OR IGNORE INTO questions (uuid, file_name, topic_intro, QA, questioner) VALUES (?, ?, ?, ?, ?)",
-                    (qa_uuid, file_name, intro, QA_text, questioner)
+                    "INSERT OR IGNORE INTO questions (uuid, file_name, topic_intro, QA, questioner, questioner_party) VALUES (?, ?, ?, ?, ?, ?)",
+                    (qa_uuid, file_name, intro, QA_text, questioner, questioner_party)
                 )
     conn.commit()
 

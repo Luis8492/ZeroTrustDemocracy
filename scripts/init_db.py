@@ -52,7 +52,8 @@ CREATE TABLE IF NOT EXISTS questions (
     file_name TEXT,
     topic_intro TEXT,
     QA TEXT,
-    questioner TEXT
+    questioner TEXT,
+    questioner_party TEXT
 )
 """
     )

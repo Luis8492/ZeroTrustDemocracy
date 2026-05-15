@@ -39,7 +39,8 @@ SCHEMA_STATEMENTS: tuple[str, ...] = (
         file_name TEXT,
         topic_intro TEXT,
         QA TEXT,
-        questioner TEXT
+        questioner TEXT,
+        questioner_party TEXT
     )
     """,
 )
@@ -63,6 +64,7 @@ def ensure_schema(conn: Connection) -> None:
         "questions",
         {
             "uuid": "TEXT UNIQUE",
+            "questioner_party": "TEXT",
         },
     )
     conn.commit()

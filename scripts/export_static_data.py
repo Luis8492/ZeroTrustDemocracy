@@ -111,7 +111,8 @@ def export(municipality: str, out_root: Path) -> Dict[str, int]:
     cur = conn.cursor()
     cur.execute(
         """
-        SELECT q.id, q.uuid, q.questioner, q.topic_intro, q.QA,
+        SELECT q.id, q.uuid, q.questioner, q.questioner_party,
+               q.topic_intro, q.QA,
                m.file_name, m.date, m.name,
                helper.metadata
         FROM questions q
@@ -129,7 +130,13 @@ def export(municipality: str, out_root: Path) -> Dict[str, int]:
 
     for row in rows:
         questioner = row["questioner"] or ""
-        party = party_table.get(_normalize_name(questioner), "")
+        # Priority: parser-extracted party (period-correct, from the meeting's
+        # own heading) > static CSV lookup > URL-helper metadata. The parser
+        # path is preferred because it reflects the 会派 at the time of the
+        # meeting even if the representative later switched factions.
+        party = (row["questioner_party"] or "").strip()
+        if not party:
+            party = party_table.get(_normalize_name(questioner), "")
         if not party:
             party = party_from_metadata(row["metadata"], questioner)
 
