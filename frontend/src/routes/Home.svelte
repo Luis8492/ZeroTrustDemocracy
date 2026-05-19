@@ -23,6 +23,15 @@
     toastTimer = setTimeout(() => { toast = null; }, 3000);
   }
 
+  // The toast lives inside <main class="page">, which establishes a stacking
+  // context (z-index: 2). Without portaling to <body>, the sticky header
+  // (z-index: 10) paints on top of it regardless of how high we push the toast's
+  // own z-index.
+  function portal(node: HTMLElement) {
+    document.body.appendChild(node);
+    return { destroy() { node.remove(); } };
+  }
+
   async function loadNext() {
     busy = true;
     error = null;
@@ -63,7 +72,7 @@
 </script>
 
 {#if toast}
-  <div class="toast" role="status" aria-live="polite">
+  <div class="toast" role="status" aria-live="polite" use:portal>
     <strong>回答を記録しました！</strong>
     <span>発言者：{toast.speaker}氏{toast.party ? `(${toast.party})` : ''}</span>
   </div>
