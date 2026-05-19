@@ -199,10 +199,13 @@
     if (!canvas) return;
     if (existing) existing.destroy();
     const labels = stats.map((s) => `${s.key} (n=${s.count})`);
+    // n=1 は標本分散が未定義なので、CI を 0 にすると「ピタリ測れた」ように
+    // 見えてしまう。代わりに誤差棒を Y 軸の上下端まで伸ばし、
+    // 「不確実性が大きい」ことを視覚化する。
     const data = stats.map((s) => ({
       y: s.mean,
-      yMin: s.mean - s.ci,
-      yMax: s.mean + s.ci,
+      yMin: s.count === 1 ? yRange.min : s.mean - s.ci,
+      yMax: s.count === 1 ? yRange.max : s.mean + s.ci,
     }));
     // Chart.js extension types are loose; cast through unknown to avoid
     // false positives from the plugin's structural-typing leaks.
